@@ -11,8 +11,6 @@ This repo uses a **tiny in-memory catalog** so you can run locally in minutes (n
 - Google auth for Gemini: either `GOOGLE_API_KEY` **or** Vertex (`gcloud auth application-default login` + project/location)
 - Phoenix Cloud API key ([Phoenix](https://app.phoenix.arize.com))
 
-This template uses `openinference-instrumentation-google-adk>=0.1.11`, which includes ADK 1.32 symbol-move support (merged in [openinference PR #3048](https://github.com/Arize-ai/openinference/pull/3048)). With `auto_instrument=True`, any *other* OpenInference instrumentors installed in the same environment are also enabled; this project only declares the ADK one.
-
 ## 10-minute quickstart
 
 1. **Clone and install**
@@ -59,7 +57,7 @@ More context: [Phoenix docs](https://arize.com/docs/phoenix).
 | Path                       | Purpose                                                                                                                                |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `README.md`                | This quickstart                                                                                                                        |
-| `.env.example`             | `PHOENIX_`*, `GOOGLE_*`, optional `GEMINI_MODEL`                                                                                       |
+| `.env.example`             | `PHOENIX_`*, `GOOGLE_`*, optional `GEMINI_MODEL`                                                                                       |
 | `.gemini/settings.json`    | Phoenix MCP + Phoenix Docs MCP                                                                                                         |
 | `agent/main.py`            | One-shot CLI run with tracing                                                                                                          |
 | `agent/instrumentation.py` | `[phoenix.otel.register(..., auto_instrument=True)](https://arize.com/docs/phoenix/integrations/python/google-adk/google-adk-tracing)` |
