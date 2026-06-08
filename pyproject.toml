@@ -1,7 +1,7 @@
 [project]
-name = "gemini-hackathon"
+name = "agentwatch"
 version = "0.1.0"
-description = "ADK shopping demo + Phoenix tracing for the Arize / Google Cloud hackathon track"
+description = "AgentWatch — production monitoring dashboard for AI agents, powered by Google ADK + Arize Phoenix"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10,<3.13"
@@ -13,10 +13,15 @@ dependencies = [
     "opentelemetry-sdk>=1.27.0",
     "opentelemetry-exporter-otlp-proto-http>=1.27.0",
     "arize-phoenix>=7.0",
+    "fastapi>=0.136.1",
+    "uvicorn>=0.46.0",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["agent/shopping_demo"]
+packages = ["agent/agentwatch_core"]
+
+[project.scripts]
+agentwatch = "agentwatch_main:main"
 
 [build-system]
 requires = ["hatchling"]

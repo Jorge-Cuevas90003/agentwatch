@@ -39,7 +39,7 @@ def setup_tracing() -> Optional[Any]:
     if not (os.environ.get("PHOENIX_API_KEY") or "").strip():
         return None
     _provider = register(
-        project_name=os.environ.get("PHOENIX_PROJECT_NAME", "gemini-hackathon"),
+        project_name=os.environ.get("PHOENIX_PROJECT_NAME", "agentwatch"),
         batch=False,
         auto_instrument=True,
         verbose=False,

@@ -1,0 +1,1199 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AgentWatch</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --m: #2997FF;
+  --r: #FF453A;
+  --g: #32D74B;
+  --a: #FFD60A;
+  --bg: #0C0C14;
+  --glass: rgba(18,18,30,.93);
+  --glass2: rgba(14,14,24,.80);
+  --bdr: rgba(255,255,255,.07);
+  --bdr2: rgba(41,151,255,.18);
+  --f: 'Inter', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --txt: #F5F5F7;
+  --mid: rgba(245,245,247,.48);
+  --dim: rgba(245,245,247,.18);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);color:var(--txt);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+/* ─── CANVAS ─────────────────────────────────────── */
+#c{position:fixed;inset:0;z-index:0}
+
+/* ─── TOP BAR ────────────────────────────────────── */
+.bar{
+  position:fixed;top:0;left:0;right:0;height:48px;z-index:20;
+  display:flex;align-items:center;
+  background:rgba(12,12,20,.88);
+  backdrop-filter:blur(24px) saturate(1.6);
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);
+  border-bottom:1px solid var(--bdr);
+  opacity:0;
+}
+.bar-logo{
+  padding:0 22px;
+  font-size:15px;font-weight:700;letter-spacing:-.02em;
+  color:var(--txt);white-space:nowrap;
+  display:flex;align-items:center;
+  border-right:1px solid var(--bdr);height:100%;flex-shrink:0;
+}
+
+.bar-proj{
+  padding:0 18px;height:100%;
+  display:flex;align-items:center;gap:7px;
+  border-right:1px solid var(--bdr);flex-shrink:0;
+}
+.proj-lbl{font-size:11px;font-weight:500;color:var(--mid)}
+.proj-sel{
+  background:none;border:none;color:var(--txt);
+  font-family:var(--f);font-size:13px;font-weight:500;cursor:pointer;outline:none;
+  appearance:none;max-width:140px;overflow:hidden;text-overflow:ellipsis;
+}
+.proj-sel option{background:#12121e}
+
+.bar-nav{display:flex;height:100%;margin-left:auto;overflow-x:auto;overflow-y:hidden}
+.bar-nav::-webkit-scrollbar{display:none}
+.nav-btn{
+  padding:0 16px;height:100%;flex-shrink:0;
+  font-family:var(--f);font-size:13px;font-weight:500;
+  color:var(--mid);background:none;border:none;cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:color .18s,border-color .18s;white-space:nowrap;
+}
+.nav-btn:hover{color:var(--txt)}
+.nav-btn.active{color:var(--txt);border-bottom-color:var(--m)}
+
+/* ─── PANEL ──────────────────────────────────────── */
+.panel{
+  position:fixed;top:48px;left:0;bottom:0;
+  width:420px;z-index:15;
+  background:var(--glass);
+  backdrop-filter:blur(32px) saturate(1.3);
+  -webkit-backdrop-filter:blur(32px) saturate(1.3);
+  border-right:1px solid var(--bdr);
+  display:flex;flex-direction:column;
+  transform:translateX(-100%);
+  box-shadow:8px 0 40px rgba(0,0,0,.5);
+}
+.panel.open{transform:translateX(0)}
+
+.panel-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:44px;flex-shrink:0;
+  border-bottom:1px solid var(--bdr);
+}
+.panel-title{font-size:14px;font-weight:600;color:var(--txt)}
+.panel-close{
+  background:none;border:none;color:var(--mid);font-family:var(--f);
+  font-size:18px;cursor:pointer;padding:0 4px;line-height:1;
+  transition:color .15s;
+}
+.panel-close:hover{color:var(--txt)}
+
+.panel-body{flex:1;overflow-y:auto;overflow-x:hidden}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+
+/* ─── PANES ──────────────────────────────────────── */
+.pane{display:none}
+.pane.active{display:block}
+
+/* Load controls */
+.p-ctrl{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:16px 20px;border-bottom:1px solid var(--bdr);
+}
+.p-label{font-size:12px;font-weight:500;color:var(--mid)}
+.p-in{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:var(--txt);font-family:var(--f);font-size:13px;font-weight:500;
+  padding:6px 10px;width:68px;outline:none;border-radius:6px;
+  transition:border-color .15s;
+}
+.p-in:focus{border-color:var(--m)}
+.p-sel{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:var(--txt);font-family:var(--f);font-size:13px;font-weight:500;
+  padding:6px 10px;outline:none;cursor:pointer;border-radius:6px;
+  appearance:none;
+}
+.p-sel option{background:#12121e}
+.p-sel:focus{border-color:var(--m)}
+
+.btn-m{
+  font-family:var(--f);font-size:13px;font-weight:600;letter-spacing:-.01em;
+  padding:7px 18px;background:var(--m);color:#fff;border:none;cursor:pointer;
+  border-radius:8px;transition:all .15s;position:relative;overflow:hidden;
+}
+.btn-m:hover{background:#1a8aff;box-shadow:0 2px 12px rgba(41,151,255,.3)}
+.btn-m:disabled{opacity:.35;cursor:not-allowed}
+.btn-m.loading::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);animation:sw .9s infinite}
+@keyframes sw{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+
+.btn-s{
+  font-family:var(--f);font-size:12px;font-weight:500;
+  padding:6px 14px;background:none;color:var(--mid);border:1px solid var(--bdr);cursor:pointer;
+  border-radius:6px;transition:all .15s;
+}
+.btn-s:hover{color:var(--txt);border-color:rgba(255,255,255,.2)}
+
+/* Metric strip */
+.mstrip{display:flex;border-bottom:1px solid var(--bdr)}
+.mstrip-item{flex:1;padding:16px 20px;border-right:1px solid var(--bdr)}
+.mstrip-item:last-child{border-right:none}
+.mi-lbl{font-size:11px;font-weight:500;color:var(--mid);margin-bottom:6px}
+.mi-val{font-size:28px;font-weight:300;letter-spacing:-.02em;line-height:1;color:var(--txt);font-family:var(--mono)}
+.mi-val.m{color:var(--m)}.mi-val.r{color:var(--r)}.mi-val.g{color:var(--g)}
+.mi-sub{font-size:11px;color:var(--dim);margin-top:4px}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:11px;font-weight:600;color:var(--mid);padding:10px 0;text-align:left;border-bottom:1px solid var(--bdr)}
+.tbl td{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;vertical-align:middle}
+.tbl tbody tr{cursor:pointer;transition:background .1s;opacity:0;transform:translateY(5px)}
+.tbl tbody tr:hover td{background:rgba(255,255,255,.025)}
+
+.t-sq{display:inline-flex;align-items:center;gap:5px}
+.sq{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sq.ok{background:var(--g)}.sq.err{background:var(--r)}
+
+.t-id{font-size:12px;color:var(--mid);font-family:var(--mono)}.t-id b{color:var(--txt)}
+.t-wrap{display:flex;align-items:center;gap:7px;min-width:90px}
+.t-track{flex:1;height:2px;background:rgba(255,255,255,.07);min-width:30px;border-radius:1px}
+.t-fill{height:100%;width:0;border-radius:1px}.t-fill.f{background:var(--g)}.t-fill.m{background:var(--a)}.t-fill.s{background:var(--r)}
+.t-lat{font-size:12px;color:var(--mid);font-family:var(--mono);min-width:44px;text-align:right;white-space:nowrap}
+
+/* expand */
+.xrow{display:none}.xrow.open{display:table-row}
+.xcell{padding:0 0 10px;background:rgba(255,255,255,.015)}
+.slist{display:flex;flex-direction:column;gap:2px;padding:8px 0 0}
+.srow{display:flex;align-items:center;gap:8px;padding:8px 12px;border-left:2px solid var(--bdr);font-size:12px}
+.srow.llm{border-left-color:#7C6AF7}.srow.tool{border-left-color:var(--m)}.srow.err{border-left-color:var(--r)}
+.sk{font-size:10px;font-weight:600;width:44px;flex-shrink:0}
+.sk.LLM{color:#7C6AF7}.sk.TOOL{color:var(--m)}.sk.CHAIN,.sk.AGENT{color:var(--mid)}
+.sn{flex:1;color:var(--txt);font-family:var(--mono);font-size:11px}.sl{color:var(--mid);font-size:11px;font-family:var(--mono)}.ss{font-size:10px;font-weight:600}
+.ss.err{color:var(--r)}.ss.ok{color:var(--g)}
+.exc{font-size:11px;color:var(--r);padding:7px 12px;background:rgba(255,69,58,.07);border-left:2px solid var(--r);margin-top:2px;word-break:break-all;font-family:var(--mono)}
+
+.tag{font-size:10px;padding:2px 6px;background:rgba(255,255,255,.06);color:var(--mid);border:1px solid var(--bdr);border-radius:4px;margin-right:3px}
+
+/* pills */
+.pills{display:flex;gap:0}
+.pill{font-size:12px;font-weight:500;color:var(--mid);background:rgba(255,255,255,.05);border:1px solid var(--bdr);border-right:none;padding:6px 13px;cursor:pointer;transition:all .15s}
+.pill:first-child{border-radius:6px 0 0 6px}
+.pill:last-child{border-right:1px solid var(--bdr);border-radius:0 6px 6px 0}
+.pill.active{color:#fff;background:var(--m);border-color:var(--m)}
+.pill:hover:not(.active){color:var(--txt)}
+
+/* eval */
+.em-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--bdr)}
+.em{padding:16px 20px;border-right:1px solid var(--bdr)}.em:last-child,.em:nth-child(2){border-right:none}
+.drow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.dlbl{font-size:11px;color:var(--mid);width:90px;flex-shrink:0}.dtrack{flex:1;height:2px;background:rgba(255,255,255,.07);border-radius:1px}
+.dfill{height:100%;background:var(--m);width:0;border-radius:1px}.dfill.bad{background:var(--r)}.dn{font-size:11px;color:var(--mid);width:20px;text-align:right}
+.etbl{width:100%;border-collapse:collapse}
+.etbl th{font-size:11px;font-weight:500;color:var(--mid);padding:8px 0;border-bottom:1px solid var(--bdr)}
+.etbl td{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.stag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px}
+.stag.g{background:rgba(50,215,75,.12);color:var(--g)}.stag.m{background:rgba(255,214,10,.12);color:var(--a)}.stag.b{background:rgba(255,69,58,.12);color:var(--r)}
+
+/* trend */
+.verd{padding:20px;border-bottom:1px solid var(--bdr)}
+.verd-big{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.verd-big.i{color:var(--g)}.verd-big.d{color:var(--r)}.verd-big.s{color:var(--mid)}
+.verd-sub{font-size:12px;color:var(--mid);margin-top:5px}
+.tcol{padding:16px 20px;border-bottom:1px solid var(--bdr)}
+.tc-hd{font-size:11px;font-weight:600;color:var(--mid);margin-bottom:10px}
+.trow{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.trow:last-child{border-bottom:none}
+.trow span:first-child{color:var(--mid)}.trow span:last-child{font-weight:500}
+.dtbl{width:100%;border-collapse:collapse}
+.dtbl th{font-size:11px;font-weight:500;color:var(--mid);padding:8px 0;border-bottom:1px solid var(--bdr)}
+.dtbl td{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.di{color:var(--g)}.dd{color:var(--r)}.ds{color:var(--mid)}
+
+/* cost */
+.crow{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.cid{font-size:11px;color:var(--mid);width:100px;flex-shrink:0;font-family:var(--mono)}
+.ctrack{flex:1;height:2px;background:rgba(255,255,255,.07);border-radius:1px}.cfill{height:100%;background:var(--m);width:0;border-radius:1px}
+.ctok{font-size:11px;color:var(--mid);width:58px;text-align:right;font-family:var(--mono)}.cusd{font-size:11px;color:var(--m);width:60px;text-align:right;font-family:var(--mono)}
+
+/* chat */
+.chat-w{display:flex;flex-direction:column;height:calc(100vh - 48px - 44px)}
+.qrow{display:flex;flex-wrap:wrap;gap:0;border-bottom:1px solid var(--bdr)}
+.qp{font-size:12px;font-weight:500;color:var(--mid);padding:10px 16px;cursor:pointer;border-right:1px solid var(--bdr);transition:all .15s}
+.qp:hover{color:var(--m);background:rgba(41,151,255,.06)}
+.msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0}
+.msg{border-bottom:1px solid var(--bdr);padding:16px 20px;opacity:0}
+.mrole{font-size:11px;font-weight:600;color:var(--mid);margin-bottom:7px}
+.mrole.a{color:var(--m)}
+.mbody{font-size:13px;line-height:1.65;color:var(--txt);white-space:pre-wrap;word-break:break-word}
+.tev{display:flex;align-items:flex-start;gap:7px;padding:7px 20px;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px;color:var(--mid)}
+.tev .arr{flex-shrink:0;margin-top:1px}
+.tev.call .arr{color:var(--m)}.tev.res .arr{color:var(--g)}
+.tev .tn{color:var(--txt);font-weight:500}.tev .ta{color:var(--mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px;font-family:var(--mono);font-size:10px}
+.tool-only{display:flex;flex-direction:column;gap:10px;color:var(--mid)}
+.tool-only-title{color:var(--txt);font-weight:600;font-size:13px}
+.tool-only-sub{font-size:12px;line-height:1.55;color:var(--mid)}
+.tool-chip-row{display:flex;flex-wrap:wrap;gap:6px}
+.tool-chip{font-family:var(--mono);font-size:10px;color:var(--txt);background:rgba(41,151,255,.10);border:1px solid rgba(41,151,255,.20);padding:4px 7px;border-radius:6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-ft{border-top:1px solid var(--bdr);padding:14px 16px;display:flex;gap:8px;align-items:flex-end;flex-shrink:0}
+.btn-ghost{font-family:var(--f);font-size:12px;font-weight:600;padding:10px 12px;background:rgba(255,255,255,.04);color:var(--mid);border:1px solid var(--bdr);cursor:pointer;border-radius:8px;transition:all .15s;min-height:40px;white-space:nowrap}
+.btn-ghost:hover{color:var(--txt);border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.07)}
+.cin{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--txt);font-family:var(--f);font-size:13px;padding:10px 12px;resize:none;min-height:40px;max-height:100px;outline:none;line-height:1.5;transition:border-color .15s;border-radius:8px}
+.cin:focus{border-color:var(--m)}.cin::placeholder{color:var(--dim)}
+
+/* dataset */
+.ds-area{padding:16px 20px;border-top:1px solid var(--bdr)}
+.ds-lbl{font-size:11px;font-weight:600;color:var(--mid);margin-bottom:10px}
+.ds-in{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--txt);font-family:var(--f);font-size:13px;padding:7px 10px;outline:none;width:220px;border-radius:6px}
+.ds-in:focus{border-color:var(--m)}
+
+/* ─── HUD CORNER ─────────────────────────────────── */
+.hud{position:fixed;bottom:24px;right:24px;z-index:15;opacity:0}
+.hud-inner{
+  background:rgba(12,12,20,.88);border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(20px);padding:14px 18px;
+  border-radius:12px;display:flex;flex-direction:column;gap:7px;min-width:164px;
+}
+.hud-row{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.hud-lbl{font-size:11px;font-weight:500;color:var(--mid)}
+.hud-val{font-size:14px;font-weight:400;color:var(--txt);font-family:var(--mono)}
+.hud-val.m{color:var(--m)}.hud-val.r{color:var(--r)}.hud-val.g{color:var(--g)}
+
+/* ─── INTRO ──────────────────────────────────────── */
+.intro{
+  position:fixed;inset:0;z-index:50;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:8px;pointer-events:none;
+}
+.intro-logo{font-size:18px;font-weight:600;letter-spacing:-.02em;color:var(--txt);opacity:0}
+.intro-sub{font-size:13px;font-weight:400;color:var(--mid);opacity:0}
+
+/* ─── MISC ───────────────────────────────────────── */
+.sp{width:14px;height:14px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--m);border-radius:50%;animation:sp3 .7s linear infinite;display:inline-block}
+@keyframes sp3{to{transform:rotate(360deg)}}
+.alert{font-size:12px;padding:9px 12px;margin:10px 20px;border-left:2px solid;border-radius:0 4px 4px 0}
+.alert.ok{background:rgba(50,215,75,.07);border-color:var(--g);color:var(--g)}
+.alert.err{background:rgba(255,69,58,.07);border-color:var(--r);color:var(--r)}
+.alert.info{background:rgba(41,151,255,.07);border-color:var(--m);color:var(--m)}
+.empty{padding:32px 20px;font-size:12px;color:var(--mid)}
+.hidden{display:none!important}
+.p20{padding:0 20px}
+.p-hint{padding:0 20px 12px;font-size:11px;color:var(--mid)}
+
+/* ─── INFO BUTTON ────────────────────────────────── */
+.btn-info{
+  margin:0 16px 0 8px;flex-shrink:0;
+  width:26px;height:26px;border-radius:50%;
+  background:rgba(255,255,255,.07);border:1px solid var(--bdr);
+  color:var(--mid);font-family:var(--f);font-size:12px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.btn-info:hover{background:rgba(255,255,255,.12);color:var(--txt)}
+
+/* ─── MODAL ──────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:100;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(8px);
+  padding:24px;
+}
+.modal-box{
+  background:rgba(22,22,36,.98);border:1px solid var(--bdr);
+  border-radius:16px;padding:28px;max-width:400px;width:100%;
+  box-shadow:0 24px 60px rgba(0,0,0,.5);
+}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modal-title{font-size:16px;font-weight:700;letter-spacing:-.02em}
+.modal-body{font-size:13px;line-height:1.65;color:var(--mid);margin-bottom:20px}
+.modal-steps{display:flex;flex-direction:column;gap:10px}
+.modal-step{display:flex;align-items:flex-start;gap:12px;font-size:13px}
+.step-n{
+  width:22px;height:22px;border-radius:50%;background:var(--m);
+  color:#fff;font-size:11px;font-weight:700;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;margin-top:1px;
+}
+@media (max-width:768px){
+  .bar-logo{padding:0 14px;font-size:14px}
+  .bar-proj{padding:0 10px;gap:5px}
+  .proj-lbl{display:none}
+  .nav-btn{padding:0 12px;font-size:12px}
+  .panel{width:100%}
+  .hud{display:none}
+  .p-ctrl{flex-wrap:wrap;gap:8px}
+  .mstrip-item{padding:12px 14px}
+  .mi-val{font-size:22px}
+  .chat-ft{padding:10px 12px}
+  .cin{font-size:14px}
+  .btn-m{padding:8px 16px}
+  .btn-m,.btn-s{border-radius:10px}
+}
+</style>
+</head>
+<body>
+
+<!-- THREE.JS CANVAS — FULL SCREEN -->
+<canvas id="c"></canvas>
+
+<!-- INTRO ANIMATION -->
+<div class="intro" id="intro">
+  <div class="intro-logo" id="introLogo">AgentWatch</div>
+  <div class="intro-sub" id="introSub">Agent observability</div>
+</div>
+
+<!-- TOP BAR -->
+<header class="bar" id="bar">
+  <div class="bar-logo">AgentWatch</div>
+  <div class="bar-proj">
+    <span class="proj-lbl">Project</span>
+    <select class="proj-sel" id="projSel"><option>Loading...</option></select>
+  </div>
+  <div class="bar-nav">
+    <button class="nav-btn active" data-tab="traces" data-i18n="tabTraces">Traces</button>
+    <button class="nav-btn" data-tab="analysis" data-i18n="tabAnalysis">Analysis</button>
+    <button class="nav-btn" data-tab="chat" data-i18n="tabChat">Chat</button>
+  </div>
+  <button class="btn-info" id="btnInfo">i</button>
+</header>
+
+<!-- DATA PANEL -->
+<div class="panel" id="panel">
+  <div class="panel-hd">
+    <span class="panel-title" id="panelTitle">Overview</span>
+    <button class="panel-close" id="panelClose">&#x2715;</button>
+  </div>
+  <div class="panel-body">
+
+    <!-- TRACES (Overview + Failures unificado) -->
+    <div class="pane active" id="pane-traces">
+      <div class="p-ctrl">
+        <div class="pills" id="traceModePills">
+          <div class="pill active" data-tm="recent" data-i18n="recent">Recent</div>
+          <div class="pill" data-tm="failed" data-i18n="failed">Failed</div>
+        </div>
+        <span class="p-label" data-i18n="limit">Limit</span>
+        <input class="p-in" type="number" id="tracesLim" value="10" min="1" max="50">
+        <button class="btn-m" id="btnTraces" data-i18n="load">Load</button>
+      </div>
+      <div class="mstrip hidden" id="tracesMstr">
+        <div class="mstrip-item"><div class="mi-lbl" data-i18n="traces">Traces</div><div class="mi-val" id="t-n">—</div></div>
+        <div class="mstrip-item"><div class="mi-lbl" data-i18n="avgLat">Avg Lat</div><div class="mi-val" id="t-avg">—</div><div class="mi-sub">ms</div></div>
+        <div class="mstrip-item"><div class="mi-lbl" data-i18n="errors">Errors</div><div class="mi-val" id="t-err">—</div></div>
+      </div>
+      <div class="p20" id="tracesTable" style="padding-top:12px"></div>
+      <div class="ds-area hidden" id="dsArea">
+        <div class="ds-lbl" data-i18n="datasetLabel">Save failures to Phoenix</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="ds-in" type="text" id="dsName" placeholder="dataset-name">
+          <button class="btn-s" id="btnDs" data-i18n="create">Create</button>
+        </div>
+        <div id="dsRes" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- ANALYSIS (Evals + Trend + Cost unificado) -->
+    <div class="pane" id="pane-analysis">
+      <div style="padding:12px 20px 0;border-bottom:1px solid var(--bdr)">
+        <div class="pills" id="analysisPills">
+          <div class="pill active" data-av="evals" data-i18n="evals">Evals</div>
+          <div class="pill" data-av="trend" data-i18n="trend">Trend</div>
+          <div class="pill" data-av="cost" data-i18n="cost">Cost</div>
+        </div>
+      </div>
+      <div id="av-evals">
+        <div class="p-ctrl">
+          <div class="pills" id="evalPills">
+            <div class="pill active" data-v="hallucination">Hallu</div>
+            <div class="pill" data-v="relevance">Relev</div>
+            <div class="pill" data-v="qa_correctness">QA</div>
+            <div class="pill" data-v="conciseness">Concise</div>
+          </div>
+          <span class="p-label">N</span>
+          <input class="p-in" type="number" id="evalLim" value="5" min="1" max="10">
+          <button class="btn-m" id="btnEval" data-i18n="run">Run</button>
+        </div>
+        <div class="p-hint" data-i18n="evalHint">Each span = 1 Gemini call. Annotations saved to Phoenix.</div>
+        <div id="evalOut"></div>
+      </div>
+      <div id="av-trend" style="display:none">
+        <div class="p-ctrl">
+          <span class="p-label" data-i18n="window">Window</span>
+          <select class="p-sel" id="trendWin">
+            <option value="6">6h</option><option value="12">12h</option>
+            <option value="24" selected>24h</option><option value="48">48h</option>
+            <option value="72">72h</option><option value="168">7d</option>
+          </select>
+          <button class="btn-m" id="btnTrend" data-i18n="compare">Compare</button>
+        </div>
+        <div id="trendOut"></div>
+      </div>
+      <div id="av-cost" style="display:none">
+        <div class="p-ctrl">
+          <span class="p-label" data-i18n="traces">Traces</span>
+          <input class="p-in" type="number" id="costLim" value="20" min="1" max="50">
+          <button class="btn-m" id="btnCost" data-i18n="analyze">Analyze</button>
+        </div>
+        <div class="p-hint">Gemini 2.5 Flash — $0.075/1M in · $0.30/1M out</div>
+        <div class="mstrip hidden" id="costMstr">
+          <div class="mstrip-item"><div class="mi-lbl" data-i18n="tokens">Tokens</div><div class="mi-val m" id="c-tok">—</div></div>
+          <div class="mstrip-item"><div class="mi-lbl" data-i18n="estCost">Est. Cost</div><div class="mi-val m" id="c-cost">—</div><div class="mi-sub">USD</div></div>
+        </div>
+        <div class="p20" id="costBars" style="padding-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="pane" id="pane-chat">
+      <div class="chat-w">
+        <div class="qrow" id="qrow"></div>
+        <div class="msgs" id="msgs"></div>
+        <div class="chat-ft">
+          <textarea class="cin" id="chatIn" rows="1"></textarea>
+          <button class="btn-m" id="btnSend" data-i18n="send">Send</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /panel-body -->
+</div><!-- /panel -->
+
+<!-- INFO MODAL -->
+<div class="modal-overlay hidden" id="infoModal">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <span class="modal-title" data-i18n="infoTitle">What is AgentWatch?</span>
+      <button class="panel-close" id="closeInfo">&#x2715;</button>
+    </div>
+    <p class="modal-body" data-i18n="infoBody">Connect Arize Phoenix to monitor your AI agents. Pick a project, load traces, and chat with the built-in agent to diagnose issues automatically.</p>
+    <div class="modal-steps">
+      <div class="modal-step"><span class="step-n">1</span><span data-i18n="step1">Select a project from the dropdown</span></div>
+      <div class="modal-step"><span class="step-n">2</span><span data-i18n="step2">Click Traces or Analysis to explore your data</span></div>
+      <div class="modal-step"><span class="step-n">3</span><span data-i18n="step3">Use Chat to diagnose issues in plain English</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div class="hud" id="hud">
+  <div class="hud-inner">
+    <div style="font-size:11px;font-weight:600;color:var(--mid);margin-bottom:4px">Overview</div>
+    <div class="hud-row"><span class="hud-lbl">Traces</span><span class="hud-val m" id="hud-n">—</span></div>
+    <div class="hud-row"><span class="hud-lbl">Errors</span><span class="hud-val r" id="hud-err">—</span></div>
+    <div class="hud-row"><span class="hud-lbl">Avg Lat</span><span class="hud-val" id="hud-lat">—</span></div>
+    <div class="hud-row"><span class="hud-lbl">Project</span><span class="hud-val" id="hud-proj" style="font-size:9px">—</span></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// THREE.JS — GALAXY PARTICLE FIELD
+// ═══════════════════════════════════════════════════
+(function(){
+  const canvas = document.getElementById('c');
+  const W = ()=>window.innerWidth, H = ()=>window.innerHeight;
+
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(W(), H());
+  renderer.setClearColor(0x0C0C14, 1);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, W()/H(), 0.1, 200);
+  camera.position.set(0, 2, 14);
+
+  // ── CUSTOM SHADER MATERIAL ──
+  const particleMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: {value:0} },
+    vertexShader: `
+      attribute float aSize;
+      attribute float aOpacity;
+      attribute vec3  aColor;
+      attribute float aGlow;
+      varying   vec3  vColor;
+      varying   float vOp;
+      varying   float vGlow;
+      void main(){
+        vColor=aColor; vOp=aOpacity; vGlow=aGlow;
+        vec4 mv=modelViewMatrix*vec4(position,1.);
+        gl_PointSize=aSize*(280./-mv.z);
+        gl_Position=projectionMatrix*mv;
+      }`,
+    fragmentShader: `
+      varying vec3  vColor;
+      varying float vOp;
+      varying float vGlow;
+      void main(){
+        vec2 uv=gl_PointCoord*2.-1.;
+        float d=length(uv);
+        if(d>1.) discard;
+        float core=1.-smoothstep(0.,.25,d);
+        float halo=pow(1.-d,2.)*vGlow;
+        float a=clamp(core*.9+halo*.35,0.,1.)*vOp;
+        vec3 col=vColor+core*vColor*2.5;
+        gl_FragColor=vec4(col,a);
+      }`,
+    transparent:true, depthWrite:false,
+    blending:THREE.AdditiveBlending, vertexColors:false
+  });
+
+  // ── BUILD GALAXY (background stars) ──
+  const STARS = 4000;
+  const sPos=[],sCol=[],sSiz=[],sOp=[],sGlow=[];
+
+  for(let i=0;i<STARS;i++){
+    // Logarithmic spiral arms
+    const arm = Math.floor(Math.random()*3);
+    const t = Math.random();
+    const r = 1 + t*9;
+    const theta = t*Math.PI*3 + arm*(Math.PI*2/3);
+    const scatter = (Math.random()-.5)*r*0.35;
+
+    const x = Math.cos(theta)*r + scatter;
+    const y = (Math.random()-.5)*r*.18 + (Math.random()-.5)*.3;
+    const z = Math.sin(theta)*r + scatter;
+    sPos.push(x,y,z);
+
+    // Color gradient by distance
+    const dist = r/10;
+    const bright = t > .85; // ~15% bright stars
+    if(bright){
+      // Bright white-blue core stars
+      sCol.push(.7+Math.random()*.3, .8+Math.random()*.2, 1);
+      sSiz.push(.8+Math.random()*.6);
+      sOp.push(.5+Math.random()*.4);
+      sGlow.push(.4+Math.random()*.4);
+    } else {
+      // Dim blue/purple field
+      const blue = .2+Math.random()*.4;
+      sCol.push(blue*.4, blue*.5, blue+.2);
+      sSiz.push(.2+Math.random()*.4);
+      sOp.push(.06+Math.random()*.18);
+      sGlow.push(0);
+    }
+  }
+
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(sPos),3));
+  starGeo.setAttribute('aColor', new THREE.BufferAttribute(new Float32Array(sCol),3));
+  starGeo.setAttribute('aSize',  new THREE.BufferAttribute(new Float32Array(sSiz),1));
+  starGeo.setAttribute('aOpacity',new THREE.BufferAttribute(new Float32Array(sOp),1));
+  starGeo.setAttribute('aGlow',  new THREE.BufferAttribute(new Float32Array(sGlow),1));
+
+  const starMat = particleMat.clone();
+  const stars = new THREE.Points(starGeo, starMat);
+  scene.add(stars);
+
+  // ── TRACE PARTICLES (data-driven) ──
+  const MAX_TRACES = 60;
+  const tPos=new Float32Array(MAX_TRACES*3);
+  const tCol=new Float32Array(MAX_TRACES*3);
+  const tSiz=new Float32Array(MAX_TRACES);
+  const tOp= new Float32Array(MAX_TRACES);
+  const tGlw=new Float32Array(MAX_TRACES);
+
+  // Default: invisible
+  tOp.fill(0);tSiz.fill(0.01);tGlw.fill(0);
+
+  const traceGeo = new THREE.BufferGeometry();
+  traceGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));
+  traceGeo.setAttribute('aColor', new THREE.BufferAttribute(tCol,3));
+  traceGeo.setAttribute('aSize',  new THREE.BufferAttribute(tSiz,1));
+  traceGeo.setAttribute('aOpacity',new THREE.BufferAttribute(tOp,1));
+  traceGeo.setAttribute('aGlow',  new THREE.BufferAttribute(tGlw,1));
+
+  const traceMat = particleMat.clone();
+  const tracePoints = new THREE.Points(traceGeo, traceMat);
+  tracePoints.position.z = 0.1;
+  scene.add(tracePoints);
+
+  // ── MOUSE PARALLAX ──
+  let mx=0,my=0,cx=0,cy=0;
+  window.addEventListener('mousemove', e=>{
+    mx=(e.clientX/window.innerWidth-.5)*2;
+    my=(e.clientY/window.innerHeight-.5)*2;
+  });
+
+  // ── ANIMATE ──
+  let frame=0;
+  function render(){
+    requestAnimationFrame(render);
+    frame++;
+    const t = frame*0.0005;
+
+    // Smooth parallax
+    cx+=(mx-cx)*.03; cy+=(my-cy)*.03;
+    camera.position.x = cx*2;
+    camera.position.y = 2-cy*1.2;
+    camera.lookAt(0,0,0);
+
+    // Galaxy slow rotation
+    stars.rotation.y = t*.08;
+    tracePoints.rotation.y = t*.08;
+
+    // Subtle star shimmer
+    if(frame%4===0){
+      const op = starGeo.attributes.aOpacity.array;
+      for(let i=0;i<20;i++){
+        const idx=Math.floor(Math.random()*STARS);
+        op[idx]=Math.max(.03,Math.min(.95,op[idx]+(Math.random()-.5)*.04));
+      }
+      starGeo.attributes.aOpacity.needsUpdate=true;
+    }
+
+    renderer.render(scene,camera);
+  }
+  render();
+
+  // ── RESIZE ──
+  window.addEventListener('resize',()=>{
+    camera.aspect=W()/H();
+    camera.updateProjectionMatrix();
+    renderer.setSize(W(),H());
+  });
+
+  // ── PUBLIC: inject trace data into particle field ──
+  window.updateTraceField = function(traces){
+    const now=Date.now();
+    const maxLat=Math.max(...traces.map(t=>t.latency_ms||0),1);
+
+    for(let i=0;i<MAX_TRACES;i++){
+      if(i>=traces.length){
+        tOp[i]=0; tSiz[i]=.01; continue;
+      }
+      const tr=traces[i];
+      const isErr=(tr.status_codes||[]).includes('ERROR');
+
+      // Position in galaxy space
+      const age=(now-new Date(tr.start_time||0).getTime())/3600000;
+      const latN=Math.min((tr.latency_ms||0)/maxLat,1);
+      const theta=(age*.6)%(Math.PI*2);
+      const r=2+latN*5;
+
+      tPos[i*3]  = Math.cos(theta)*r + (Math.random()-.5)*.5;
+      tPos[i*3+1]= (latN-.5)*3;
+      tPos[i*3+2]= Math.sin(theta)*r + (Math.random()-.5)*.5;
+
+      // Color
+      if(isErr){tCol[i*3]=1;tCol[i*3+1]=.27;tCol[i*3+2]=.23;}
+      else      {tCol[i*3]=.16;tCol[i*3+1]=.59;tCol[i*3+2]=1;}
+
+      tSiz[i]=isErr?1.8:1.2;
+      tGlw[i]=isErr?.95:.7;
+      tOp[i]=0; // animate in
+    }
+    traceGeo.attributes.position.needsUpdate=true;
+    traceGeo.attributes.aColor.needsUpdate=true;
+    traceGeo.attributes.aSize.needsUpdate=true;
+    traceGeo.attributes.aGlow.needsUpdate=true;
+    traceGeo.attributes.aOpacity.needsUpdate=true;
+
+    // Animate opacity in with Anime.js via proxy
+    const proxy={v:0};
+    anime({targets:proxy,v:1,duration:1200,easing:'easeOutExpo',
+      update(){
+        for(let i=0;i<Math.min(traces.length,MAX_TRACES);i++) tOp[i]=proxy.v;
+        traceGeo.attributes.aOpacity.needsUpdate=true;
+      }
+    });
+  };
+})();
+
+// ═══════════════════════════════════════════════════
+// INTRO ANIMATION
+// ═══════════════════════════════════════════════════
+anime.timeline()
+  .add({targets:'#introLogo',opacity:[0,1],translateY:[12,0],duration:700,easing:'easeOutQuart'})
+  .add({targets:'#introSub',opacity:[0,1],translateY:[8,0],duration:500,easing:'easeOutQuart'},'-=400')
+  .add({targets:'#intro',opacity:[1,0],duration:400,easing:'easeInQuad',
+    complete(){ document.getElementById('intro').style.display='none'; }},'+=800')
+  .add({targets:'#bar,.hud',opacity:[0,1],duration:500,easing:'easeOutQuart',delay:anime.stagger(100)},'-=300');
+
+// ═══════════════════════════════════════════════════
+// i18n
+// ═══════════════════════════════════════════════════
+const LANG=navigator.language.startsWith('es')?'es':'en';
+const T={
+  en:{
+    tabTraces:'Traces',tabAnalysis:'Analysis',tabChat:'Chat',
+    projLabel:'Project',recent:'Recent',failed:'Failed',
+    load:'Load',run:'Run',compare:'Compare',analyze:'Analyze',create:'Create',
+    limit:'Limit',window:'Window',traces:'Traces',avgLat:'Avg Lat',errors:'Errors',
+    evals:'Evals',trend:'Trend',cost:'Cost',tokens:'Tokens',estCost:'Est. Cost',
+    send:'Send',askPlaceholder:'Ask AgentWatch…',
+    datasetLabel:'Save failures to Phoenix',
+    evalHint:'Each span = 1 Gemini call. Annotations saved to Phoenix.',
+    infoTitle:'What is AgentWatch?',
+    infoBody:'A monitoring tool for AI agents. It connects to Arize Phoenix to read your agent traces and lets you diagnose problems, evaluate quality, and track costs — all in one place.',
+    step1:'Select a project from the top dropdown',
+    step2:'Click Traces to see recent runs, or Analysis to evaluate quality',
+    step3:'Use Chat to get an automatic diagnosis in plain language',
+    panelTraces:'Traces',panelAnalysis:'Analysis',panelChat:'Chat',
+    qDiagnose:'Diagnose failures',qEval:'Run evaluation',qTrend:'Check trend',qFull:'Full analysis',
+  },
+  es:{
+    tabTraces:'Trazas',tabAnalysis:'Análisis',tabChat:'Chat',
+    projLabel:'Proyecto',recent:'Recientes',failed:'Fallidas',
+    load:'Cargar',run:'Ejecutar',compare:'Comparar',analyze:'Analizar',create:'Crear',
+    limit:'Límite',window:'Ventana',traces:'Trazas',avgLat:'Lat. prom.',errors:'Errores',
+    evals:'Evaluaciones',trend:'Tendencia',cost:'Costo',tokens:'Tokens',estCost:'Costo est.',
+    send:'Enviar',askPlaceholder:'Pregúntale a AgentWatch…',
+    datasetLabel:'Guardar fallos en Phoenix',
+    evalHint:'Cada span = 1 llamada a Gemini. Anotaciones guardadas en Phoenix.',
+    infoTitle:'¿Qué es AgentWatch?',
+    infoBody:'Una herramienta de monitoreo para agentes de IA. Se conecta a Arize Phoenix para leer tus trazas y te permite diagnosticar problemas, evaluar calidad y controlar costos, todo en un solo lugar.',
+    step1:'Selecciona un proyecto en el menú desplegable',
+    step2:'Click en Trazas para ver ejecuciones, o en Análisis para evaluar calidad',
+    step3:'Usa el Chat para obtener un diagnóstico automático en lenguaje natural',
+    panelTraces:'Trazas',panelAnalysis:'Análisis',panelChat:'Chat',
+    qDiagnose:'Diagnosticar fallos',qEval:'Ejecutar evaluación',qTrend:'Ver tendencia',qFull:'Análisis completo',
+  }
+};
+function t(k){return(T[LANG]||T.en)[k]||k;}
+function applyI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.dataset.i18n;const v=t(k);
+    if(el.tagName==='INPUT'||el.tagName==='TEXTAREA')el.placeholder=v;
+    else el.textContent=v;
+  });
+  const ci=$('#chatIn');if(ci)ci.placeholder=t('askPlaceholder');
+}
+
+// ═══════════════════════════════════════════════════
+// APP STATE & UTILS
+// ═══════════════════════════════════════════════════
+const G={project:'',sessionId:null,evalType:'hallucination',panelOpen:false,traceMode:'recent',analysisView:'evals'};
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const enc=s=>encodeURIComponent(s);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt={
+  ms:v=>v==null?'—':v>=1000?`${(v/1000).toFixed(1)}s`:`${Math.round(v)}ms`,
+  tok:v=>v==null?'—':v>=1000?`${(v/1000).toFixed(1)}k`:`${v}`,
+  usd:v=>v==null?'—':`$${v.toFixed(4)}`,
+  pct:v=>v==null?'—':`${(v*100).toFixed(1)}%`,
+};
+function numUp(el,to,dec=0){
+  if(to==null||isNaN(+to)){el.textContent='—';return;}
+  const p={v:0};
+  anime({targets:p,v:to,duration:900,easing:'easeOutExpo',update(){el.textContent=dec?p.v.toFixed(dec):Math.round(p.v)}});
+}
+async function api(path,opts={}){
+  const r=await fetch('/api'+path,{headers:{'Content-Type':'application/json'},...opts});
+  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+function setBtn(btn,on){btn.disabled=on;on?btn.classList.add('loading'):btn.classList.remove('loading');}
+function showAlert(sel,type,msg){
+  const d=document.createElement('div');d.className=`alert ${type}`;d.textContent=msg;
+  $(sel).prepend(d);setTimeout(()=>d.remove(),7000);
+}
+
+// ── PANEL OPEN/CLOSE ──
+function openPanel(tab){
+  const panel=$('#panel');
+  const names={traces:t('panelTraces'),analysis:t('panelAnalysis'),chat:t('panelChat')};
+  $('#panelTitle').textContent=names[tab]||tab;
+  $$('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  const out=$('.pane.active'),inn=$(`#pane-${tab}`);
+  if(inn&&inn!==out){if(out)out.classList.remove('active');inn.classList.add('active');}
+  if(!G.panelOpen){
+    panel.classList.add('open');G.panelOpen=true;
+    anime({targets:panel,translateX:['-100%','0%'],duration:380,easing:'easeOutExpo'});
+  }
+}
+$('#panelClose').addEventListener('click',()=>{
+  anime({targets:'#panel',translateX:[0,'-100%'],duration:280,easing:'easeInQuad',
+    complete(){$('#panel').classList.remove('open');G.panelOpen=false;}});
+  $$('.nav-btn').forEach(b=>b.classList.remove('active'));
+});
+$$('.nav-btn').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.tab)));
+
+// ── INFO MODAL ──
+$('#btnInfo').addEventListener('click',()=>$('#infoModal').classList.remove('hidden'));
+$('#closeInfo').addEventListener('click',()=>$('#infoModal').classList.add('hidden'));
+$('#infoModal').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.add('hidden');});
+
+// ── PROJECTS ──
+async function loadProjects(){
+  try{
+    const d=await api('/projects');
+    const sel=$('#projSel');sel.innerHTML='';
+    (d.projects||[]).forEach(p=>{const o=document.createElement('option');o.value=p.name;o.textContent=p.name;sel.appendChild(o);});
+    G.project=sel.value;
+    $('#hud-proj').textContent=G.project;
+    refreshDs();refreshQrow();
+  }catch(e){console.error(e);}
+}
+$('#projSel').addEventListener('change',e=>{G.project=e.target.value;$('#hud-proj').textContent=G.project;refreshDs();refreshQrow();});
+function refreshDs(){const i=$('#dsName');if(i)i.value=`failures-${G.project}`;}
+
+// ── TRACES (unified recent + failed) ──
+$$('#traceModePills .pill').forEach(p=>p.addEventListener('click',()=>{
+  $$('#traceModePills .pill').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active');G.traceMode=p.dataset.tm;
+}));
+$('#btnTraces').addEventListener('click',async()=>{
+  if(!G.project)return;
+  const btn=$('#btnTraces');setBtn(btn,true);
+  const lim=parseInt($('#tracesLim').value)||10;
+  try{
+    let d;
+    if(G.traceMode==='failed'){
+      d=await api(`/projects/${enc(G.project)}/failures?limit=${lim}`);
+      const ms=$('#tracesMstr');ms.classList.remove('hidden');ms.style.display='flex';
+      anime({targets:'#tracesMstr .mstrip-item',opacity:[0,1],translateY:[8,0],delay:anime.stagger(80),duration:400,easing:'easeOutExpo'});
+      numUp($('#t-n'),d.failure_count||0);
+      numUp($('#t-avg'),d.avg_latency_ms);
+      $('#t-err').textContent=d.failure_count||0;$('#t-err').className='mi-val r';
+      renderTable('#tracesTable',d.traces||[]);
+      if((d.failure_count||0)>0)$('#dsArea').classList.remove('hidden');
+      if(window.updateTraceField)window.updateTraceField(d.traces||[]);
+      updateHud(d.traces||[],{avg_latency_ms:d.avg_latency_ms});
+    } else {
+      d=await api(`/projects/${enc(G.project)}/summary?limit=${lim}`);
+      const s=d.stats||{};
+      const ms=$('#tracesMstr');ms.classList.remove('hidden');ms.style.display='flex';
+      anime({targets:'#tracesMstr .mstrip-item',opacity:[0,1],translateY:[8,0],delay:anime.stagger(80),duration:400,easing:'easeOutExpo'});
+      numUp($('#t-n'),s.trace_count);
+      numUp($('#t-avg'),s.avg_latency_ms);
+      const ee=$('#t-err');
+      if(s.any_errors){ee.textContent='!';ee.className='mi-val r';}else{ee.textContent='0';ee.className='mi-val g';}
+      renderTable('#tracesTable',d.traces||[]);
+      if(window.updateTraceField)window.updateTraceField(d.traces||[]);
+      updateHud(d.traces||[],s);
+    }
+  }catch(e){showAlert('#tracesTable','err','Failed: '+e.message);}
+  finally{setBtn(btn,false);}
+});
+function updateHud(traces,stats){
+  $('#hud-n').textContent=traces.length;
+  const errs=traces.filter(t=>(t.status_codes||[]).includes('ERROR')).length;
+  $('#hud-err').textContent=errs;
+  $('#hud-err').className='hud-val '+(errs>0?'r':'g');
+  $('#hud-lat').textContent=fmt.ms(stats.avg_latency_ms);
+}
+
+// ── ANALYSIS SUB-TABS ──
+$$('#analysisPills .pill').forEach(p=>p.addEventListener('click',()=>{
+  $$('#analysisPills .pill').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active');G.analysisView=p.dataset.av;
+  ['evals','trend','cost'].forEach(v=>$(`#av-${v}`).style.display=v===p.dataset.av?'block':'none');
+}));
+
+// ── TABLE ──
+function renderTable(sel,traces){
+  const c=$(sel);
+  if(!traces.length){c.innerHTML='<div class="empty">No traces found.</div>';return;}
+  const maxL=Math.max(...traces.map(t=>t.latency_ms||0),1);
+  let h=`<table class="tbl"><thead><tr>
+    <th>St</th><th>Trace ID</th><th>Latency</th><th>LLM</th><th>Tools</th>
+  </tr></thead><tbody>`;
+  traces.forEach(t=>{
+    const isE=(t.status_codes||[]).includes('ERROR');
+    const lp=t.latency_ms?Math.min(t.latency_ms/maxL*100,100):0;
+    const lc=t.latency_ms>30000?'s':t.latency_ms>10000?'m':'f';
+    const tools=(t.tool_calls||[]).slice(0,2).join(', ')||'—';
+    h+=`<tr onclick="toggleRow(this,'${t.trace_id}')">
+      <td><div class="t-sq"><div class="sq ${isE?'err':'ok'}"></div></div></td>
+      <td class="t-id"><b>${t.trace_id?t.trace_id.slice(0,12)+'…':'—'}</b></td>
+      <td><div class="t-wrap">
+        <div class="t-track"><div class="t-fill ${lc}" data-w="${lp.toFixed(1)}"></div></div>
+        <div class="t-lat">${fmt.ms(t.latency_ms)}</div>
+      </div></td>
+      <td style="font-size:10px;color:#9580FF">${t.llm_calls||0}</td>
+      <td style="font-size:9px;color:var(--mid);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(tools)}</td>
+    </tr>
+    <tr class="xrow" id="xr-${t.trace_id}">
+      <td colspan="5" class="xcell">
+        <div class="slist" id="sl-${t.trace_id}">
+          <div style="padding:6px 8px;display:flex;align-items:center;gap:7px;font-size:9px;color:var(--mid)"><div class="sp"></div>Loading...</div>
+        </div>
+      </td>
+    </tr>`;
+  });
+  h+='</tbody></table>';
+  c.innerHTML=h;
+  anime({targets:`${sel} tbody tr:not(.xrow)`,opacity:[0,1],translateY:[5,0],delay:anime.stagger(30),duration:300,easing:'easeOutQuad'});
+  setTimeout(()=>$$('.t-fill').forEach(el=>anime({targets:el,width:el.dataset.w+'%',duration:700,easing:'easeOutExpo'})),80);
+}
+
+async function toggleRow(row,tid){
+  const xr=$(`#xr-${tid}`);
+  const open=xr.classList.contains('open');
+  $$('.xrow.open').forEach(r=>r.classList.remove('open'));
+  if(!open){xr.classList.add('open');await loadSpans(tid);}
+}
+
+async function loadSpans(tid){
+  const c=$(`#sl-${tid}`);if(c.dataset.loaded)return;
+  try{
+    const d=await api(`/trace/${tid}?project=${enc(G.project)}`);
+    if(d.error){c.innerHTML=`<div class="alert err" style="margin:6px">${esc(d.error)}</div>`;return;}
+    const spans=d.spans||[];
+    if(!spans.length){c.innerHTML='<div style="padding:6px 8px;font-size:9px;color:var(--mid)">No spans.</div>';return;}
+    c.innerHTML=spans.map(s=>{
+      const kc=['LLM','TOOL','CHAIN','AGENT'].includes(s.kind)?s.kind:'CHAIN';
+      const isE=s.status_code==='ERROR';
+      const rc=isE?'err':kc==='LLM'?'llm':kc==='TOOL'?'tool':'';
+      return `<div class="srow ${rc}">
+        <span class="sk ${kc}">${s.kind||'?'}</span>
+        <span class="sn">${esc(s.name||'')}</span>
+        ${s.tool_name?`<span class="tag">${esc(s.tool_name)}</span>`:''}
+        ${s.llm_model?`<span class="tag">${esc(s.llm_model)}</span>`:''}
+        <span class="sl">${fmt.ms(s.latency_ms)}</span>
+        <span class="ss ${isE?'err':'ok'}">${s.status_code||'?'}</span>
+      </div>
+      ${s.exception?`<div class="exc">${s.exception_type?`[${esc(s.exception_type)}] `:''}${esc(s.exception.slice(0,220))}</div>`:''}`;
+    }).join('');
+    c.dataset.loaded='1';
+    anime({targets:`#sl-${tid} .srow`,opacity:[0,1],translateX:[-5,0],delay:anime.stagger(25),duration:220,easing:'easeOutQuad'});
+  }catch(e){c.innerHTML=`<div class="alert err" style="margin:6px">${esc(e.message)}</div>`;}
+}
+
+$('#btnDs').addEventListener('click',async()=>{
+  if(!G.project)return;
+  const btn=$('#btnDs');const name=$('#dsName').value||undefined;
+  const lim=parseInt($('#tracesLim').value)||10;
+  setBtn(btn,true);$('#dsRes').innerHTML='';
+  try{
+    const d=await api(`/projects/${enc(G.project)}/dataset`,{method:'POST',body:JSON.stringify({dataset_name:name,limit:lim})});
+    if(d.status==='created'){$('#dsRes').innerHTML=`<div class="alert ok">Dataset "${esc(d.dataset_name)}" — ${d.error_spans_added} spans added.</div>`;}
+    else{$('#dsRes').innerHTML=`<div class="alert info">${esc(JSON.stringify(d))}</div>`;}
+  }catch(e){$('#dsRes').innerHTML=`<div class="alert err">Failed: ${esc(e.message)}</div>`;}
+  finally{setBtn(btn,false);}
+});
+
+// ── EVALS ──
+$$('#evalPills .pill').forEach(p=>p.addEventListener('click',()=>{
+  $$('#evalPills .pill').forEach(x=>x.classList.remove('active'));p.classList.add('active');G.evalType=p.dataset.v;
+}));
+$('#btnEval').addEventListener('click',async()=>{
+  if(!G.project)return;
+  const btn=$('#btnEval');const lim=parseInt($('#evalLim').value)||5;
+  setBtn(btn,true);
+  $('#evalOut').innerHTML=`<div style="padding:14px 20px;display:flex;gap:8px;align-items:center;font-size:9px;color:var(--mid)"><div class="sp"></div>Running ${G.evalType} eval...</div>`;
+  try{
+    const d=await api(`/projects/${enc(G.project)}/evals`,{method:'POST',body:JSON.stringify({eval_type:G.evalType,limit:lim})});
+    renderEvals(d);
+  }catch(e){$('#evalOut').innerHTML=`<div class="alert err" style="margin:12px">Failed: ${esc(e.message)}</div>`;}
+  finally{setBtn(btn,false);}
+});
+function renderEvals(d){
+  const avg=d.avg_score,dist=d.label_distribution||{},spans=d.per_span_results||[],ann=d.annotation_status||{};
+  const GOOD=['factual','relevant','correct','concise'];
+  const tot=Object.values(dist).reduce((a,b)=>a+b,0)||1;
+  let h=`<div class="em-grid">
+    <div class="em"><div class="mi-lbl">Avg Score</div>
+      <div class="mi-val ${avg>=.7?'g':avg>=.4?'a':avg!=null?'r':''}" style="font-size:20px">${avg!=null?avg.toFixed(2):'—'}</div></div>
+    <div class="em"><div class="mi-lbl">Evaluated</div><div class="mi-val" style="font-size:20px">${d.evaluated_count||0}</div></div>
+    <div class="em"><div class="mi-lbl">Posted</div><div class="mi-val ${ann.posted>0?'g':''}" style="font-size:20px">${ann.posted||0}</div></div>
+    <div class="em"><div class="mi-lbl">Type</div><div class="mi-val" style="font-size:11px">${d.eval_type||'—'}</div></div>
+  </div>`;
+  if(Object.keys(dist).length){
+    h+=`<div style="padding:14px 20px 0"><div class="mi-lbl" style="margin-bottom:8px">Labels</div>`;
+    Object.entries(dist).sort((a,b)=>b[1]-a[1]).forEach(([l,n])=>{
+      const p=n/tot;const g=GOOD.includes(l);
+      h+=`<div class="drow"><div class="dlbl">${esc(l)}</div><div class="dtrack"><div class="dfill ${g?'':'bad'}" data-w="${(p*100).toFixed(1)}"></div></div><div class="dn">${n}</div></div>`;
+    });
+    h+=`</div>`;
+  }
+  h+=`<div style="padding:14px 20px 0"><div class="mi-lbl" style="margin-bottom:8px">Per-Span</div>
+  <table class="etbl"><thead><tr><th>Score</th><th>Label</th><th>Explanation</th></tr></thead><tbody>`;
+  spans.forEach(s=>{
+    const sc=s.score||0;const c=sc>=.7?'g':sc>=.4?'m':'b';
+    h+=`<tr><td><span class="stag ${c}">${sc.toFixed(2)}</span></td><td style="color:var(--mid)">${esc(s.label)}</td>
+      <td style="color:var(--mid);font-size:9px">${esc((s.explanation||'').slice(0,90))}</td></tr>`;
+  });
+  h+=`</tbody></table></div>`;
+  $('#evalOut').innerHTML=h;
+  anime({targets:'#evalOut .em',opacity:[0,1],translateY:[8,0],delay:anime.stagger(70),duration:350,easing:'easeOutExpo'});
+  setTimeout(()=>$$('.dfill').forEach(el=>anime({targets:el,width:el.dataset.w+'%',duration:800,easing:'easeOutExpo'})),180);
+}
+
+// ── TREND ──
+$('#btnTrend').addEventListener('click',async()=>{
+  if(!G.project)return;
+  const btn=$('#btnTrend');const wh=$('#trendWin').value;
+  setBtn(btn,true);
+  $('#trendOut').innerHTML=`<div style="padding:14px 20px;display:flex;gap:8px;align-items:center;font-size:9px;color:var(--mid)"><div class="sp"></div>Comparing...</div>`;
+  try{
+    const d=await api(`/projects/${enc(G.project)}/trend?window_hours=${wh}`);
+    renderTrend(d,wh);
+  }catch(e){$('#trendOut').innerHTML=`<div class="alert err" style="margin:12px">Failed: ${esc(e.message)}</div>`;}
+  finally{setBtn(btn,false);}
+});
+function renderTrend(d,wh){
+  const v=d.verdict||'STABLE';const isI=v.includes('IMPROVED'),isD=v.includes('DEGRADED');
+  const vc=isI?'i':isD?'d':'s';
+  const wa=d.window_a_recent||{},wb=d.window_b_baseline||{},dl=d.delta||{};
+  const rows=[
+    ['Error Rate',fmt.pct(wa.error_rate),fmt.pct(wb.error_rate),dl.error_rate,true],
+    ['Avg Latency',fmt.ms(wa.avg_latency_ms),fmt.ms(wb.avg_latency_ms),dl.avg_latency_ms!=null?dl.avg_latency_ms.toFixed(0)+'ms':null,true],
+    ['p95 Latency',fmt.ms(wa.p95_latency_ms),fmt.ms(wb.p95_latency_ms),dl.p95_latency_ms!=null?dl.p95_latency_ms.toFixed(0)+'ms':null,true],
+    ['Traces',wa.count,wb.count,null,false],
+  ];
+  let h=`<div class="verd"><div class="verd-big ${vc}">${v.replace(/[^\w\s]/g,'').trim()}</div>
+    <div class="verd-sub">${wh}h recent vs ${wh}h baseline</div></div>
+  <div class="tcol"><div class="tc-hd">Recent / Baseline</div>
+    ${rows.map(([n,a,b])=>`<div class="trow"><span>${n}</span><span>${a??'—'} / ${b??'—'}</span></div>`).join('')}
+  </div>
+  <div style="padding:14px 20px 0"><div class="mi-lbl" style="margin-bottom:8px">Delta</div>
+  <table class="dtbl"><thead><tr><th>Metric</th><th>Delta</th><th>Dir</th></tr></thead><tbody>`;
+  rows.filter(r=>r[2]!==null).forEach(([n,_,__,dv,lb])=>{
+    if(dv==null){h+=`<tr><td style="color:var(--mid)">${n}</td><td class="ds">—</td><td class="ds">—</td></tr>`;return;}
+    const nd=parseFloat(dv);const imp=lb?nd<0:nd>0;
+    const dc=Math.abs(nd)<.001?'ds':imp?'di':'dd';
+    const ar=Math.abs(nd)<.001?'→':imp?'↓':'↑';
+    h+=`<tr><td style="color:var(--mid)">${n}</td><td class="${dc}">${dv}</td><td class="${dc}">${ar} ${imp?'Better':'Worse'}</td></tr>`;
+  });
+  h+=`</tbody></table></div>`;
+  $('#trendOut').innerHTML=h;
+  anime({targets:'.verd',opacity:[0,1],translateY:[-6,0],duration:500,easing:'easeOutExpo'});
+}
+
+// ── COST ──
+$('#btnCost').addEventListener('click',async()=>{
+  if(!G.project)return;
+  const btn=$('#btnCost');const lim=parseInt($('#costLim').value)||20;
+  setBtn(btn,true);
+  try{
+    const d=await api(`/projects/${enc(G.project)}/tokens?limit=${lim}`);
+    const agg=d.aggregate||{};
+    const cm=$('#costMstr');cm.classList.remove('hidden');cm.style.display='flex';
+    anime({targets:'#costMstr .mstrip-item',opacity:[0,1],translateY:[8,0],delay:anime.stagger(80),duration:400,easing:'easeOutExpo'});
+    numUp($('#c-tok'),agg.total_tokens);
+    $('#c-cost').textContent=fmt.usd(agg.estimated_cost_usd);
+    renderCost(d.per_trace||[]);
+  }catch(e){showAlert('#costBars','err','Failed: '+e.message);}
+  finally{setBtn(btn,false);}
+});
+function renderCost(rows){
+  const sorted=[...rows].sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,12);
+  const maxC=Math.max(...sorted.map(r=>(r.prompt||0)*.075/1e6+(r.completion||0)*.30/1e6),.0000001);
+  let h='';
+  sorted.forEach(r=>{
+    const cost=(r.prompt||0)*.075/1e6+(r.completion||0)*.30/1e6;
+    const pct=(cost/maxC*100).toFixed(1);
+    h+=`<div class="crow"><div class="cid">${r.trace_id?r.trace_id.slice(0,10)+'…':'?'}</div>
+      <div class="ctrack"><div class="cfill" data-w="${pct}"></div></div>
+      <div class="ctok">${fmt.tok(r.total)}</div>
+      <div class="cusd">${fmt.usd(cost)}</div>
+    </div>`;
+  });
+  $('#costBars').innerHTML=h;
+  setTimeout(()=>$$('.cfill').forEach(el=>anime({targets:el,width:el.dataset.w+'%',duration:800,easing:'easeOutExpo'})),80);
+}
+
+// ── CHAT ──
+function getQuick(){return[
+  [t('qDiagnose'),()=>`Diagnose failures in '${G.project}'. Root cause + fix.`],
+  [t('qEval'),()=>`Run hallucination evals on '${G.project}'.`],
+  [t('qTrend'),()=>`Is '${G.project}' improving? Compare 24h windows.`],
+  [t('qFull'),()=>`Full self-improvement on '${G.project}': diagnose, eval, dataset, fix.`],
+];}
+function refreshQrow(){
+  const q=getQuick();
+  $('#qrow').innerHTML=q.map(([l],i)=>`<div class="qp" data-qi="${i}">${l}</div>`).join('');
+  $$('.qp').forEach(p=>p.addEventListener('click',()=>sendMsg(getQuick()[+p.dataset.qi][1]())));
+}
+
+function addMsg(role,txt){
+  const d=document.createElement('div');d.className='msg';
+  d.innerHTML=`<div class="mrole ${role}">${role==='u'?'You':'AgentWatch'}</div><div class="mbody">${esc(txt)}</div>`;
+  $('#msgs').appendChild(d);scroll();
+  anime({targets:d,opacity:[0,1],duration:250,easing:'easeOutQuad'});
+  return d.querySelector('.mbody');
+}
+function addTool(type,name,detail){
+  const d=document.createElement('div');d.className=`tev ${type}`;
+  const arr=type==='call'?'→':'←';
+  d.innerHTML=`<span class="arr">${arr}</span><span class="tn">${esc(name)}</span><span class="ta">${detail?esc(String(detail).slice(0,200)):''}</span>`;
+  $('#msgs').appendChild(d);scroll();
+}
+function scroll(){const m=$('#msgs');m.scrollTop=m.scrollHeight;}
+function toolOnlyHtml(calls,results){
+  const uniq=[...new Set([...calls,...results].filter(Boolean))];
+  const chips=uniq.slice(0,8).map(n=>`<span class="tool-chip">${esc(n)}</span>`).join('');
+  const more=uniq.length>8?`<span class="tool-chip">+${uniq.length-8}</span>`:'';
+  return `<div class="tool-only">
+    <div class="tool-only-title">Tool run completed</div>
+    <div class="tool-only-sub">AgentWatch finished the requested Phoenix actions, but the model did not return a final written answer for this turn.</div>
+    ${uniq.length?`<div class="tool-chip-row">${chips}${more}</div>`:''}
+  </div>`;
+}
+
+async function sendMsg(text){
+  if(!text.trim())return;
+  const inp=$('#chatIn'),btn=$('#btnSend');
+  inp.value='';autoH(inp);
+  addMsg('u',text);setBtn(btn,true);
+  const bubble=addMsg('a','');
+  bubble.innerHTML='<div class="sp"></div>';
+  let full='',hadError=false;
+  const toolCalls=[],toolResults=[];
+  try{
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,session_id:G.sessionId})});
+    if(!r.ok)throw new Error(`HTTP ${r.status}`);
+    const reader=r.body.getReader();const dec=new TextDecoder();let buf='';
+    while(true){
+      const {done,value}=await reader.read();if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split('\n');buf=lines.pop();
+      for(const ln of lines){
+        if(!ln.startsWith('data: '))continue;
+        try{
+          const ev=JSON.parse(ln.slice(6));
+          if(ev.type==='session')G.sessionId=ev.session_id;
+          else if(ev.type==='text'){
+            full+=ev.content;
+            bubble.innerHTML=esc(full).replace(/\n/g,'<br>');scroll();
+          }else if(ev.type==='tool_call'){
+            toolCalls.push(ev.name);
+            addTool('call',ev.name,JSON.stringify(ev.args));
+            if(!full)bubble.innerHTML=`<span style="color:var(--mid)">Running ${esc(ev.name)}...</span>`;
+          }else if(ev.type==='tool_result'){
+            toolResults.push(ev.name);
+            addTool('res',ev.name,ev.preview);
+            if(!full)bubble.innerHTML=`<span style="color:var(--mid)">Reading ${esc(ev.name)} results...</span>`;
+          }else if(ev.type==='done'){
+            bubble.innerHTML=full?esc(full).replace(/\n/g,'<br>'):toolOnlyHtml(toolCalls,toolResults);
+          }else if(ev.type==='error'){
+            hadError=true;
+            bubble.innerHTML=`<span style="color:var(--r)">${esc(ev.message)}</span>`;
+          }
+        }catch{}
+      }
+    }
+    if(full)bubble.innerHTML=esc(full).replace(/\n/g,'<br>');
+    else if(!hadError)bubble.innerHTML=toolOnlyHtml(toolCalls,toolResults);
+  }catch(e){bubble.innerHTML=`<span style="color:var(--r)">Error: ${esc(e.message)}</span>`;}
+  finally{setBtn(btn,false);scroll();}
+}
+$('#btnSend').addEventListener('click',()=>sendMsg($('#chatIn').value));
+$('#chatIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(e.target.value);}});
+function autoH(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+$('#chatIn').addEventListener('input',e=>autoH(e.target));
+
+// INIT
+applyI18n();
+loadProjects();
+</script>
+</body>
+</html>
+
+
+
+
+

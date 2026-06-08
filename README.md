@@ -1,73 +1,82 @@
-# Gemini hackathon starter
+# AgentWatch
 
-End-to-end template for the **Arize @ Google Cloud Partnerships Hackathon** track: a small **Google ADK** agent (pattern from [google/adk-samples personalized-shopping](https://github.com/google/adk-samples/tree/main/python/agents/personalized-shopping)), **OpenInference** instrumentation for ADK, **[phoenix.otel.register](https://arize.com/docs/phoenix/get-started/get-started-tracing)** for Phoenix Cloud tracing, and **Gemini CLI** MCP config for `@arizeai/phoenix-mcp`.
+Production monitoring dashboard for AI agents. Connects to **Arize Phoenix** to show you what your agents are doing, where they fail, what they cost, and why — all from a single web UI with a built-in AI assistant for automatic diagnosis.
 
-This repo uses a **tiny in-memory catalog** so you can run locally in minutes (no PyTorch, Pyserini, or multi-gigabyte product downloads). The agent still exposes the same **search** / **click** tools and a shopping-focused system prompt derived from the upstream sample.
+![AgentWatch UI](https://img.shields.io/badge/stack-Google%20ADK%20%2B%20Phoenix%20%2B%20FastAPI-blue)
+![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![Python](https://img.shields.io/badge/python-3.10--3.12-blue)
+
+## What it does
+
+| Tab | What you get |
+|---|---|
+| **Traces** | Recent runs and failures for any Phoenix project. Click any trace to expand spans. |
+| **Analysis → Evals** | LLM-as-judge evaluation (hallucination, relevance, QA, conciseness). Results posted back to Phoenix automatically. |
+| **Analysis → Trend** | Compare the last N hours vs the N hours before — get an IMPROVED / DEGRADED / STABLE verdict. |
+| **Analysis → Cost** | Token usage and estimated USD cost per trace (Gemini 2.5 Flash pricing). |
+| **Chat** | Ask in plain English or Spanish: *"Why is my agent failing?"* — the built-in Gemini agent pulls real traces from Phoenix and gives you a root-cause diagnosis. |
+
+The **`i` button** in the top bar explains how to use the app.
 
 ## Prerequisites
 
 - Python 3.10–3.12
 - [uv](https://docs.astral.sh/uv/)
-- Google auth for Gemini: either `GOOGLE_API_KEY` **or** Vertex (`gcloud auth application-default login` + project/location)
-- Phoenix Cloud API key ([Phoenix](https://app.phoenix.arize.com))
+- Arize Phoenix account — API key at [app.phoenix.arize.com](https://app.phoenix.arize.com)
+- Google API key (Gemini) **or** GCP project with Vertex AI
 
-## 10-minute quickstart
+## Quickstart
 
-1. **Clone and install**
-  ```bash
-   cd gemini-hackathon
-   cp .env.example .env
-   # Edit .env: PHOENIX_API_KEY, PHOENIX_COLLECTOR_ENDPOINT (Hostname with /s/...), and either GOOGLE_API_KEY or Vertex settings.
-   uv sync
-  ```
-2. **Run a traced shopping turn**
-  ```bash
-   make run MESSAGE='Find a floral dress in size M'
-  ```
-3. **Open Phoenix** — project name defaults to `PHOENIX_PROJECT_NAME` (`gemini-hackathon`). Confirm LLM and tool spans appear.
-4. **(Optional) ADK CLI**
-  ```bash
-   make run-adk
-   # Find a floral dress in size M
-  ```
-   This path also loads `.env` and initializes Phoenix tracing.
+```bash
+git clone https://github.com/your-username/agentwatch
+cd agentwatch
+cp .env.example .env
+# Edit .env — fill in PHOENIX_API_KEY, PHOENIX_COLLECTOR_ENDPOINT, and GOOGLE_API_KEY
+uv sync
+uv run uvicorn agent.agentwatch_api:app --port 8080 --reload
+```
 
-### Phoenix MCP (Gemini CLI)
+Open **http://localhost:8080**.
 
-Phoenix MCP runs **inside Gemini CLI**, not inside the Python ADK process. After traces are flowing from `make run`, you can inspect the same Phoenix space from the CLI. Setup patterns and clients are covered in [Phoenix MCP server](https://arize.com/docs/phoenix/integrations/phoenix-mcp-server).
+## Configuration (`.env`)
 
-1. **Configure MCP** — Ensure `[.gemini/settings.json](.gemini/settings.json)` in this repo (or `~/.gemini/settings.json`) includes the `phoenix` server with `@arizeai/phoenix-mcp@latest`. Set `--baseUrl` to your Phoenix space hostname (same idea as `PHOENIX_COLLECTOR_ENDPOINT`: `https://app.phoenix.arize.com/s/your-space`) and set `--apiKey` to your Phoenix API key (`px_live_...`), or keep keys only in env if your CLI supports that pattern.
-2. **Export your API key** in the shell that launches Gemini CLI (if the MCP server reads it from the environment):
-  ```bash
-   export PHOENIX_API_KEY=...
-  ```
-3. **Start Gemini CLI** from the repo root (or merge the `mcpServers` block into your global Gemini config). Restart the CLI if you just changed MCP settings.
-4. **Agent queries Phoenix via MCP (runtime superpower)** — With `@arizeai/phoenix-mcp` configured, the assistant gets **tools** over your Phoenix workspace (traces, sessions, experiments, prompts, datasets, and more). Try prompts such as:
-  - *“In Phoenix, show me the last 3 traces in my **gemini-hackathon** project.”*
-  - *“In Phoenix, summarize my latest experiment results.”*
-  - *“In Phoenix, create a prompt that classifies user intent.”*
-   Additional ideas (sessions, annotation configs, datasets): [Using the Phoenix MCP server](https://arize.com/docs/phoenix/integrations/phoenix-mcp-server#using-the-phoenix-mcp-server).
-5. **(Optional)** The same file defines **Phoenix Docs MCP** (`phoenix-docs`) for in-IDE Phoenix documentation.
+```env
+# Google Gemini — pick one:
+GOOGLE_API_KEY=your_key           # simplest
+# or Vertex AI:
+# GOOGLE_GENAI_USE_VERTEXAI=1
+# GOOGLE_CLOUD_PROJECT=your-project-id
+# GOOGLE_CLOUD_LOCATION=us-central1
 
-More context: [Phoenix docs](https://arize.com/docs/phoenix).
+# Arize Phoenix Cloud
+PHOENIX_API_KEY=px_live_...
+PHOENIX_COLLECTOR_ENDPOINT=https://app.phoenix.arize.com/s/your-space
 
-## Layout
+# Optional
+GEMINI_MODEL=gemini-2.5-flash
+PHOENIX_PROJECT_NAME=agentwatch
+```
 
+## Architecture
 
-| Path                       | Purpose                                                                                                                                |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `README.md`                | This quickstart                                                                                                                        |
-| `.env.example`             | `PHOENIX_`*, `GOOGLE_`*, optional `GEMINI_MODEL`                                                                                       |
-| `.gemini/settings.json`    | Phoenix MCP + Phoenix Docs MCP                                                                                                         |
-| `agent/main.py`            | One-shot CLI run with tracing                                                                                                          |
-| `agent/instrumentation.py` | `[phoenix.otel.register(..., auto_instrument=True)](https://arize.com/docs/phoenix/integrations/python/google-adk/google-adk-tracing)` |
-| `agent/shopping_demo/`     | ADK `root_agent`, prompt, tools, mini webshop                                                                                          |
-| `Makefile`                 | `make setup`, `make run`, `make run-adk`                                                                                               |
+```
+browser  ──►  FastAPI (agent/agentwatch_api.py)
+                 ├── /api/projects          Phoenix REST
+                 ├── /api/.../summary       Phoenix REST  
+                 ├── /api/.../failures      Phoenix REST
+                 ├── /api/.../tokens        Phoenix REST
+                 ├── /api/.../trend         Phoenix REST
+                 ├── /api/.../evals         Gemini LLM-as-judge
+                 ├── /api/.../dataset       Phoenix GraphQL
+                 └── /api/chat  (SSE)       Google ADK agent
+                                               └── Phoenix MCP (npx)
+```
 
+The frontend (`agent/static/index.html`) is a single HTML file — Three.js galaxy background, Anime.js animations, Inter font. No build step.
 
-## Upstream credit
+## Language
 
-Agent structure and prompts are adapted from **Google ADK Samples** — [personalized-shopping](https://github.com/google/adk-samples/tree/main/python/agents/personalized-shopping) (Apache-2.0). Replace `shopping_demo/mini_webshop.py` with the full WebShop stack when you need the original fidelity.
+The UI auto-detects your browser language and switches between **English** and **Spanish**.
 
 ## License
 
