@@ -400,6 +400,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
     <button class="nav-btn" data-tab="chat" data-i18n="tabChat">Chat</button>
   </div>
   <button class="btn-info" id="btnInfo">i</button>
+  <button class="btn-info" id="btnConnect" title="Connect your Phoenix account" style="margin-left:4px">⚙</button>
 </header>
 
 <!-- DATA PANEL -->
@@ -898,6 +899,9 @@ $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.tab
 $('#btnInfo').addEventListener('click',()=>$('#infoModal').classList.remove('hidden'));
 $('#closeInfo').addEventListener('click',()=>$('#infoModal').classList.add('hidden'));
 $('#infoModal').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.add('hidden');});
+
+// ── CONNECT BUTTON (always visible, lets users swap Phoenix account) ──
+$('#btnConnect').addEventListener('click',()=>$('#setupOverlay').classList.remove('hidden'));
 
 // ── PROJECTS ──
 async function loadProjects(){
