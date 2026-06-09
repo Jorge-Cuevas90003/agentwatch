@@ -27,7 +27,7 @@ The **`i` button** in the top bar explains how to use the app.
 
 ## Live Demo
 
-> **[agentwatch.onrender.com](https://agentwatch.onrender.com)** — opens directly, no login needed.
+> **[agentwatch-v4x7.onrender.com](https://agentwatch-v4x7.onrender.com)** — opens directly, no login needed.
 > First load may take ~30 s (free tier cold start).
 
 ## Deploy your own (free, 5 minutes)
