@@ -26,14 +26,7 @@ if str(_root) not in sys.path:
 from dotenv import load_dotenv
 load_dotenv(_root.parent / ".env")
 
-# Vertex AI on cloud platforms: write service account JSON from env var to temp file
-import tempfile
-_gac_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON", "")
-if _gac_json and not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-    _tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
-    _tmp.write(_gac_json)
-    _tmp.close()
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = _tmp.name
+
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
