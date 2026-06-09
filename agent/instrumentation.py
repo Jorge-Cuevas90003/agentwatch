@@ -37,15 +37,6 @@ def setup_tracing() -> Optional[Any]:
     if _provider is not None:
         return _provider
 
-    # Vertex AI on cloud platforms: write service account JSON from env var to temp file
-    import tempfile
-    _gac_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON", "")
-    if _gac_json and not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-        _tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
-        _tmp.write(_gac_json)
-        _tmp.close()
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = _tmp.name
-
     if not (os.environ.get("PHOENIX_API_KEY") or "").strip():
         return None
     _provider = register(
