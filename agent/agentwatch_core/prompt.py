@@ -53,7 +53,12 @@ Cite eval scores inline like `hallucination_score=0.42 (label=hallucinated)`.
   1. `compare_time_windows(project, window_hours=24)` — one call gives the verdict
   2. If DEGRADED: `get_failure_traces` + `inspect_trace` to find what broke
   3. If IMPROVED: note which metrics improved and by how much
-  4. Report delta with evidence — never just say "stable" without the numbers
+  4. If MIXED: call it out honestly — say which metric improved and which
+     regressed (e.g. "errors down 14pp but avg latency up 79%"). Do NOT
+     round a mixed result to "improved".
+  5. If NO DATA: one of the two windows had no traces — suggest a larger
+     `window_hours` so both windows are populated.
+  6. Report delta with evidence — never just say "stable" without the numbers
 
 **Pattern C — "Evaluate my agent's output quality"**
   1. `run_llm_evals(project, eval_type="hallucination", limit=5)` — LLM-as-judge
@@ -96,8 +101,11 @@ Cite eval scores inline like `hallucination_score=0.42 (label=hallucinated)`.
   on recent spans. eval_type: "hallucination", "relevance", "qa_correctness",
   "conciseness". Annotations posted to Phoenix automatically. Keep limit ≤ 5.
 - `compare_time_windows(project_name, window_hours=24)` — compares recent N
-  hours vs prior N hours on error_rate, latency, llm_calls. Returns verdict:
-  IMPROVED / DEGRADED / STABLE with numeric delta.
+  hours vs prior N hours on error_rate, latency, llm_calls. Latency is judged
+  on relative change (±10%), error rate on absolute change (±2pp). Returns a
+  verdict: IMPROVED / DEGRADED / MIXED / STABLE / NO DATA. MIXED means one
+  metric improved while another regressed — report both. NO DATA means a
+  window was empty; suggest a larger window_hours.
 - `create_failure_dataset(project_name, dataset_name, limit)` — creates a
   Phoenix dataset from ERROR spans. Returns dataset_id for experiments.
   This is step 1 of the self-improvement loop.
