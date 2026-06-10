@@ -29,6 +29,7 @@ from agentwatch_core.phoenix_summary import (
 )
 from agentwatch_core.phoenix_evals import (
     run_llm_evals,
+    run_prompt_experiment,
     compare_time_windows,
     create_failure_dataset,
 )
@@ -94,6 +95,9 @@ _tools = [
     FunctionTool(func=run_llm_evals),
     FunctionTool(func=compare_time_windows),
     FunctionTool(func=create_failure_dataset),
+    # Closes the loop: A/B-test a proposed prompt fix against real production
+    # output, in-process (no Phoenix MCP needed).
+    FunctionTool(func=run_prompt_experiment),
 ]
 
 # Phoenix MCP — full power for datasets, experiments, prompts, etc. (if available).

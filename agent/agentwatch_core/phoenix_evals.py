@@ -138,6 +138,76 @@ def _call_gemini(prompt: str) -> Dict[str, Any]:
     raise ValueError(f"Could not parse eval response: {text[:200]}")
 
 
+def _gemini_generate(instruction: str, user_text: str) -> str:
+    """Free-form Gemini generation (not JSON) — used to produce a candidate
+    answer when A/B testing a proposed prompt against production behavior."""
+    from google import genai
+
+    client = genai.Client()
+    resp = client.models.generate_content(
+        model=current_model(),
+        contents=f"{instruction}\n\nUser request:\n{user_text}",
+        config={"temperature": 0.3, "max_output_tokens": 800},
+    )
+    return (resp.text or "").strip()
+
+
+def _extract_text(raw: str, role: str = "user") -> str:
+    """Best-effort extraction of the human-readable text from a span's
+    input.value / output.value, which may be plain text or JSON in several
+    shapes (ADK, OpenAI chat, OpenInference). Falls back to the raw string.
+
+    role: "user" pulls the request from input.value; "assistant" pulls the
+    answer from output.value.
+    """
+    raw = (raw or "").strip()
+    if not raw or (raw[0] not in "{["):
+        return raw[:2000]
+    try:
+        obj = json.loads(raw)
+    except Exception:
+        return raw[:2000]
+    if not isinstance(obj, dict):
+        return raw[:2000]
+
+    # ADK shape: input {"new_message": {"parts": [{"text": ...}]}}
+    #            output {"content": {"parts": [{"text": ...}]}}
+    container = obj.get("new_message") or obj.get("content")
+    if isinstance(container, dict):
+        parts = container.get("parts") or []
+        texts = [p.get("text", "") for p in parts if isinstance(p, dict) and p.get("text")]
+        if texts:
+            return "\n".join(texts)[:2000]
+
+    # Gemini API shape: {"contents": [{"parts": [{"text": ...}]}, ...]}
+    contents = obj.get("contents")
+    if isinstance(contents, list):
+        texts = []
+        for turn in contents:
+            for p in (turn.get("parts") or []) if isinstance(turn, dict) else []:
+                if isinstance(p, dict) and p.get("text"):
+                    texts.append(p["text"])
+        if texts:
+            # For a request, the user's ask is the last text part.
+            return (texts[-1] if role == "user" else "\n".join(texts))[:2000]
+
+    # OpenAI chat shape: {"messages": [{"role": "user", "content": ...}]}
+    msgs = obj.get("messages")
+    if isinstance(msgs, list):
+        want = "user" if role == "user" else "assistant"
+        picked = [m.get("content", "") for m in msgs
+                  if isinstance(m, dict) and m.get("role") == want]
+        if picked:
+            return str(picked[-1])[:2000]
+
+    # Generic single-field shapes
+    for k in ("text", "content", "output", "input", "prompt", "question", "answer"):
+        v = obj.get(k)
+        if isinstance(v, str) and v.strip():
+            return v[:2000]
+    return raw[:2000]
+
+
 # ── Tool 1: LLM-as-judge evals ──────────────────────────────────────────────
 
 def run_llm_evals(
@@ -274,6 +344,134 @@ def run_llm_evals(
         "label_distribution": label_dist,
         "annotation_status": annotation_status,
         "per_span_results": results,
+    }
+
+
+# ── Tool 1b: Prompt A/B experiment (closes the self-improvement loop) ────────
+
+def run_prompt_experiment(
+    project_name: str,
+    candidate_instruction: str,
+    eval_type: str = "qa_correctness",
+    limit: int = 3,
+) -> Dict[str, Any]:
+    """A/B test a candidate prompt against production behavior — in-process.
+
+    This CLOSES the self-improvement loop without needing Phoenix MCP /
+    run-experiment (which isn't available on cloud deploys). After you diagnose
+    a quality issue and draft a fix, call this to PROVE the fix helps with real
+    numbers before recommending it.
+
+    For each recent span that has both input and output:
+      1. baseline_score  — LLM-judge of the EXISTING production output.
+      2. candidate_output — Gemini run with ``candidate_instruction`` on the
+         same extracted user request.
+      3. candidate_score — LLM-judge of the candidate output, same rubric.
+    Then aggregates avg baseline vs avg candidate, win/loss/tie counts, and a
+    verdict (CANDIDATE BETTER / WORSE / TIE).
+
+    Args:
+        project_name: Phoenix project to pull recent spans from.
+        candidate_instruction: The improved system prompt/instruction to test.
+        eval_type: Quality rubric to judge on — one of "hallucination",
+            "relevance", "qa_correctness", "conciseness". Default "qa_correctness".
+        limit: Spans to test (default 3, hard cap 5 — each span costs 3 Gemini
+            calls: one generation + two judgements).
+    """
+    if eval_type not in EVAL_PROMPTS:
+        return {"error": f"Unknown eval_type '{eval_type}'. "
+                         f"Choose from: {sorted(EVAL_PROMPTS.keys())}"}
+    if not (candidate_instruction or "").strip():
+        return {"error": "candidate_instruction is required — pass the improved prompt to test."}
+
+    limit = max(1, min(int(limit), 5))
+    project = quote(project_name, safe="")
+
+    with _http() as c:
+        resp = c.get(f"/v1/projects/{project}/spans", params={"limit": 200})
+        if resp.status_code == 404:
+            return {"error": f"Project '{project_name}' not found."}
+        resp.raise_for_status()
+        spans = resp.json().get("data", [])
+
+    evaluable = [
+        s for s in spans
+        if (s.get("attributes") or {}).get("input.value")
+        and (s.get("attributes") or {}).get("output.value")
+    ][:limit]
+    if not evaluable:
+        return {"error": "No spans with input+output found to experiment on.",
+                "project": project_name}
+
+    rubric = EVAL_PROMPTS[eval_type]
+
+    def _judge(question: str, answer: str) -> Dict[str, Any]:
+        prompt = rubric.replace("<<INPUT>>", question[:1200]).replace("<<OUTPUT>>", answer[:1200])
+        try:
+            v = _call_gemini(prompt)
+            return {"score": float(v.get("score", 0.5)), "label": str(v.get("label", "unknown"))}
+        except Exception as exc:  # noqa: BLE001
+            return {"score": None, "label": "eval_error", "error": str(exc)[:120]}
+
+    rows: List[Dict[str, Any]] = []
+    for s in evaluable:
+        attrs = s.get("attributes") or {}
+        question = _extract_text(str(attrs.get("input.value", "")), role="user")
+        baseline_out = _extract_text(str(attrs.get("output.value", "")), role="assistant")
+        try:
+            candidate_out = _gemini_generate(candidate_instruction, question)
+            gen_ok = True
+        except Exception as exc:  # noqa: BLE001
+            candidate_out, gen_ok = f"(generation failed: {str(exc)[:100]})", False
+
+        base = _judge(question, baseline_out)
+        cand = _judge(question, candidate_out) if gen_ok else {"score": None, "label": "skipped"}
+
+        delta = (
+            round(cand["score"] - base["score"], 3)
+            if (base["score"] is not None and cand["score"] is not None) else None
+        )
+        rows.append({
+            "span_id": s.get("context", {}).get("span_id") or s.get("id"),
+            "question_preview": question[:160],
+            "baseline_score": base["score"], "baseline_label": base["label"],
+            "candidate_score": cand["score"], "candidate_label": cand["label"],
+            "candidate_output_preview": candidate_out[:240],
+            "delta": delta,
+        })
+
+    scored = [r for r in rows if r["delta"] is not None]
+    base_scores = [r["baseline_score"] for r in scored]
+    cand_scores = [r["candidate_score"] for r in scored]
+    wins = sum(1 for r in scored if r["delta"] > 0.05)
+    losses = sum(1 for r in scored if r["delta"] < -0.05)
+    ties = len(scored) - wins - losses
+
+    avg_base = round(sum(base_scores) / len(base_scores), 3) if base_scores else None
+    avg_cand = round(sum(cand_scores) / len(cand_scores), 3) if cand_scores else None
+    avg_delta = round(avg_cand - avg_base, 3) if (avg_base is not None and avg_cand is not None) else None
+
+    if avg_delta is None:
+        verdict = "INCONCLUSIVE — could not score the comparison"
+    elif avg_delta > 0.05:
+        verdict = "CANDIDATE BETTER 📈"
+    elif avg_delta < -0.05:
+        verdict = "CANDIDATE WORSE 📉"
+    else:
+        verdict = "TIE ➡️"
+
+    return {
+        "project": project_name,
+        "eval_type": eval_type,
+        "spans_tested": len(rows),
+        "avg_baseline_score": avg_base,
+        "avg_candidate_score": avg_cand,
+        "avg_delta": avg_delta,
+        "wins": wins, "losses": losses, "ties": ties,
+        "verdict": verdict,
+        "per_span": rows,
+        "note": "Baseline = current production output; candidate = your proposed "
+                "prompt run on the same requests. Both judged on the same rubric.",
     }
 
 

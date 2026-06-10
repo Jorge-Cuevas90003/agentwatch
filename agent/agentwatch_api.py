@@ -53,6 +53,7 @@ from agentwatch_core.phoenix_evals import (
     compare_time_windows,
     create_failure_dataset,
     run_llm_evals,
+    run_prompt_experiment,
 )
 
 app = FastAPI(title="AgentWatch", docs_url=None, redoc_url=None)
@@ -209,6 +210,22 @@ class EvalRequest(BaseModel):
 @app.post("/api/projects/{project_name}/evals")
 def api_evals(project_name: str, req: EvalRequest):
     return run_llm_evals(project_name, eval_type=req.eval_type, limit=req.limit)
+
+
+class ExperimentRequest(BaseModel):
+    candidate_instruction: str
+    eval_type: str = "qa_correctness"
+    limit: int = 3
+
+
+@app.post("/api/projects/{project_name}/experiment")
+def api_experiment(project_name: str, req: ExperimentRequest):
+    return run_prompt_experiment(
+        project_name,
+        candidate_instruction=req.candidate_instruction,
+        eval_type=req.eval_type,
+        limit=req.limit,
+    )
 
 
 class DatasetRequest(BaseModel):
