@@ -1010,6 +1010,13 @@ async function loadProjects(){
     G.project=sel.value;
     $('#hud-proj').textContent=G.project;
     refreshDs();refreshQrow();
+    // First impression: open Traces and auto-load so judges see real data
+    // immediately instead of an empty galaxy + header. Only on first load.
+    if(G.project && !G.bootstrapped){
+      G.bootstrapped=true;
+      openPanel('traces');
+      $('#btnTraces').click();
+    }
   }catch(e){console.error(e);}
 }
 $('#projSel').addEventListener('change',e=>{G.project=e.target.value;$('#hud-proj').textContent=G.project;refreshDs();refreshQrow();resetViews();});
