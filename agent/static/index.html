@@ -229,7 +229,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
 .ctok{font-size:11px;color:var(--mid);width:58px;text-align:right;font-family:var(--mono)}.cusd{font-size:11px;color:var(--m);width:60px;text-align:right;font-family:var(--mono)}
 
 /* chat */
-.chat-w{display:flex;flex-direction:column;height:calc(100vh - 48px - 44px)}
+.chat-w{display:flex;flex-direction:column;height:calc(100vh - 48px - 44px);height:calc(100dvh - 48px - 44px)}
 .qrow{display:flex;flex-wrap:wrap;gap:0;border-bottom:1px solid var(--bdr)}
 .qp{font-size:12px;font-weight:500;color:var(--mid);padding:10px 16px;cursor:pointer;border-right:1px solid var(--bdr);transition:all .15s}
 .qp:hover{color:var(--m);background:rgba(41,151,255,.06)}
@@ -396,20 +396,41 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
   color:#fff;font-size:11px;font-weight:700;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;margin-top:1px;
 }
+/* ── Tablet / small laptop ── */
+@media (max-width:900px){
+  .panel{width:100%;max-width:480px}
+}
+/* ── Mobile ── */
 @media (max-width:768px){
-  .bar-logo{padding:0 14px;font-size:14px}
-  .bar-proj{padding:0 10px;gap:5px}
+  /* Header: free up room so the 3 nav tabs are always reachable. */
+  .bar-logo{padding:0 12px;font-size:13px}
+  .bar-proj{padding:0 9px;gap:5px}
   .proj-lbl{display:none}
-  .nav-btn{padding:0 12px;font-size:12px}
-  .panel{width:100%}
+  .proj-sel{max-width:80px;font-size:16px}
+  .bar-nav{margin-left:auto}
+  .nav-btn{padding:0 9px;font-size:12px}
+  .btn-info{margin:0 5px 0 3px;width:24px;height:24px}
+  .panel{width:100%;max-width:none}
   .hud{display:none}
   .p-ctrl{flex-wrap:wrap;gap:8px}
   .mstrip-item{padding:12px 14px}
   .mi-val{font-size:22px}
   .chat-ft{padding:10px 12px}
-  .cin{font-size:14px}
+  /* 16px on text inputs prevents iOS Safari auto-zoom on focus. */
+  .cin,.setup-in,.p-in,.ds-in{font-size:16px}
   .btn-m{padding:8px 16px}
   .btn-m,.btn-s{border-radius:10px}
+  .estate{padding:40px 22px}
+  .verd2-head{font-size:26px}
+  .modal-box,.setup-box{padding:22px}
+}
+/* ── Phones (≤440px): compact the brand so the 3 tabs never clip. ── */
+@media (max-width:440px){
+  .bar-logo{padding:0 10px;font-size:0;border-right:none}
+  .bar-logo::after{content:'AW';font-size:14px;font-weight:700;letter-spacing:-.02em}
+  .bar-proj{padding:0 8px;border-left:1px solid var(--bdr)}
+  .proj-sel{max-width:78px}
+  .nav-btn{padding:0 9px}
 }
 </style>
 </head>
