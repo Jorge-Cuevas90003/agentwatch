@@ -1144,6 +1144,11 @@ $('#btnEval').addEventListener('click',async()=>{
 });
 function renderEvals(d){
   const avg=d.avg_score,dist=d.label_distribution||{},spans=d.per_span_results||[],ann=d.annotation_status||{};
+  if(!spans.length){
+    $('#evalOut').innerHTML=emptyState('evals',
+      LANG==='es'?'Sin resultados de eval':'No eval results',
+      LANG==='es'?'No se encontraron spans LLM para evaluar en este proyecto.':'No LLM spans were found to evaluate in this project.');
+    animEstate('#evalOut');return;}
   const GOOD=['factual','relevant','correct','concise'];
   const tot=Object.values(dist).reduce((a,b)=>a+b,0)||1;
   let h=`<div class="em-grid">
