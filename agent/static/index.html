@@ -1007,8 +1007,15 @@ async function loadProjects(){
     refreshDs();refreshQrow();
   }catch(e){console.error(e);}
 }
-$('#projSel').addEventListener('change',e=>{G.project=e.target.value;$('#hud-proj').textContent=G.project;refreshDs();refreshQrow();});
+$('#projSel').addEventListener('change',e=>{G.project=e.target.value;$('#hud-proj').textContent=G.project;refreshDs();refreshQrow();resetViews();});
 function refreshDs(){const i=$('#dsName');if(i)i.value=`failures-${G.project}`;}
+// Clear stale data when switching projects so one project's traces/cost/evals
+// never linger on screen while showing another project's name in the header.
+function resetViews(){
+  ['#tracesTable','#evalOut','#trendOut','#costBars','#dsRes'].forEach(s=>{const el=$(s);if(el)el.innerHTML='';});
+  ['#tracesMstr','#costMstr','#dsArea'].forEach(s=>{const el=$(s);if(el){el.classList.add('hidden');el.style.display='';}});
+  ['#hud-n','#hud-err','#hud-lat'].forEach(s=>{const el=$(s);if(el)el.textContent='—';});
+}
 
 // ── TRACES (unified recent + failed) ──
 $$('#traceModePills .pill').forEach(p=>p.addEventListener('click',()=>{
