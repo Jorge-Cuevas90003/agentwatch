@@ -18,6 +18,10 @@ dependencies = [
     # Phoenix data call here is a plain REST request via httpx.
     "arize-phoenix-otel>=0.6",
     "httpx>=0.27",
+    # MCP SDK — used directly (StdioServerParameters) and by google-adk's
+    # McpToolset. Previously pulled in transitively by the full arize-phoenix
+    # package; declared explicitly now that we depend only on arize-phoenix-otel.
+    "mcp>=1.0",
     "fastapi>=0.136.1",
     "uvicorn>=0.46.0",
 ]
