@@ -373,6 +373,11 @@ def get_token_usage_stats(
     _pin, _pout = pricing_for()
     _price_in = _pin / 1_000_000
     _price_out = _pout / 1_000_000
+    # Per-trace cost so the UI bars use the same pricing as the aggregate.
+    for r in rows:
+        r["cost_usd"] = round(
+            r["prompt"] * _price_in + r["completion"] * _price_out, 6
+        )
     estimated_cost_usd = round(
         total_prompt * _price_in + total_completion * _price_out, 6
     )

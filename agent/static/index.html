@@ -296,6 +296,35 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
 .alert.err{background:rgba(255,69,58,.07);border-color:var(--r);color:var(--r)}
 .alert.info{background:rgba(41,151,255,.07);border-color:var(--m);color:var(--m)}
 .empty{padding:32px 20px;font-size:12px;color:var(--mid)}
+/* ─── EMPTY STATE ────────────────────────────────── */
+.estate{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:52px 28px;gap:14px}
+.estate-ic{width:54px;height:54px;display:flex;align-items:center;justify-content:center;border-radius:16px;
+  background:linear-gradient(160deg,rgba(41,151,255,.14),rgba(41,151,255,.04));border:1px solid var(--bdr2);
+  box-shadow:0 8px 28px -12px rgba(41,151,255,.45)}
+.estate-ic svg{width:26px;height:26px;stroke:var(--m);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.estate-t{font-size:14px;font-weight:600;color:var(--txt);letter-spacing:-.01em}
+.estate-s{font-size:12px;color:var(--mid);max-width:280px;line-height:1.55}
+.estate-act{margin-top:4px;font-size:11.5px;font-weight:600;color:var(--m);background:rgba(41,151,255,.10);
+  border:1px solid var(--bdr2);border-radius:8px;padding:7px 14px;cursor:pointer;transition:all .15s;font-family:var(--f)}
+.estate-act:hover{background:rgba(41,151,255,.18)}
+/* ─── TREND VERDICT BADGE ────────────────────────── */
+.verd2{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:34px 20px 28px;border-bottom:1px solid var(--bdr);overflow:hidden}
+.verd2-glow{position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:340px;height:240px;
+  border-radius:50%;filter:blur(60px);opacity:.32;pointer-events:none;z-index:0}
+.verd2.i .verd2-glow{background:radial-gradient(circle,var(--g),transparent 70%)}
+.verd2.d .verd2-glow{background:radial-gradient(circle,var(--r),transparent 70%)}
+.verd2.s .verd2-glow{background:radial-gradient(circle,var(--m),transparent 70%);opacity:.18}
+.verd2-badge{position:relative;z-index:1;display:flex;align-items:center;gap:10px;
+  padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;letter-spacing:.04em;
+  border:1px solid;backdrop-filter:blur(8px)}
+.verd2.i .verd2-badge{color:var(--g);border-color:rgba(50,215,75,.4);background:rgba(50,215,75,.10)}
+.verd2.d .verd2-badge{color:var(--r);border-color:rgba(255,69,58,.4);background:rgba(255,69,58,.10)}
+.verd2.s .verd2-badge{color:var(--mid);border-color:var(--bdr);background:rgba(255,255,255,.04)}
+.verd2-arrow{font-size:18px;line-height:1;display:inline-block}
+.verd2-head{position:relative;z-index:1;margin-top:16px;font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.verd2.i .verd2-head{color:var(--g)}.verd2.d .verd2-head{color:var(--r)}.verd2.s .verd2-head{color:var(--txt)}
+.verd2-sub{position:relative;z-index:1;font-size:12px;color:var(--mid);margin-top:7px}
 /* ─── SETUP SCREEN ───────────────────────────────── */
 .setup-overlay{
   position:fixed;inset:0;z-index:200;
@@ -880,6 +909,20 @@ function renderMd(raw){
   t=t.replace(/(?:<br>)?@@CB(\d+)@@(?:<br>)?/g,(_,i)=>blocks[+i]);
   return t;
 }
+const EICON={
+  traces:'<svg viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>',
+  cost:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5a2.5 2 0 0 1 5 0c0 1.4-1.2 1.8-2.5 2.2s-2.5.8-2.5 2.2a2.5 2 0 0 0 5 0"/></svg>',
+  evals:'<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+  trend:'<svg viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>'
+};
+function emptyState(kind,title,sub,actLabel,actId){
+  const act=actLabel?`<button class="estate-act" ${actId?`id="${actId}"`:''}>${esc(actLabel)}</button>`:'';
+  return `<div class="estate">
+    <div class="estate-ic">${EICON[kind]||EICON.traces}</div>
+    <div class="estate-t">${esc(title)}</div>
+    <div class="estate-s">${esc(sub)}</div>${act}</div>`;
+}
+function animEstate(sel){anime({targets:`${sel} .estate`,opacity:[0,1],translateY:[10,0],duration:420,easing:'easeOutExpo'});anime({targets:`${sel} .estate-ic`,scale:[.8,1],duration:520,easing:'easeOutBack'});}
 const fmt={
   ms:v=>v==null?'—':v>=1000?`${(v/1000).toFixed(1)}s`:`${Math.round(v)}ms`,
   tok:v=>v==null?'—':v>=1000?`${(v/1000).toFixed(1)}k`:`${v}`,
@@ -1000,7 +1043,11 @@ $$('#analysisPills .pill').forEach(p=>p.addEventListener('click',()=>{
 // ── TABLE ──
 function renderTable(sel,traces){
   const c=$(sel);
-  if(!traces.length){c.innerHTML='<div class="empty">No traces found.</div>';return;}
+  if(!traces.length){
+    c.innerHTML=emptyState('traces',
+      LANG==='es'?'Sin trazas todavía':'No traces yet',
+      LANG==='es'?'Este proyecto aún no tiene trazas en Phoenix, o no hay ninguna en el rango seleccionado.':'This project has no traces in Phoenix yet, or none in the selected range.');
+    animEstate(sel);return;}
   const maxL=Math.max(...traces.map(t=>t.latency_ms||0),1);
   let h=`<table class="tbl"><thead><tr>
     <th>St</th><th>Trace ID</th><th>Latency</th><th>LLM</th><th>Tools</th>
@@ -1149,8 +1196,16 @@ function renderTrend(d,wh){
     ['p95 Latency',fmt.ms(wa.p95_latency_ms),fmt.ms(wb.p95_latency_ms),dl.p95_latency_ms!=null?dl.p95_latency_ms.toFixed(0)+'ms':null,true],
     ['Traces',wa.count,wb.count,null,false],
   ];
-  let h=`<div class="verd"><div class="verd-big ${vc}">${v.replace(/[^\w\s]/g,'').trim()}</div>
-    <div class="verd-sub">${wh}h recent vs ${wh}h baseline</div></div>
+  const verdTxt=v.replace(/[^\w\s]/g,'').trim();
+  const arr=isI?'↑':isD?'↓':'→';
+  const badge=isI?(LANG==='es'?'MEJORANDO':'IMPROVING'):isD?(LANG==='es'?'EMPEORANDO':'DEGRADING'):(LANG==='es'?'ESTABLE':'STABLE');
+  const subTxt=LANG==='es'?`últimas ${wh}h vs ${wh}h previas`:`last ${wh}h vs prior ${wh}h`;
+  let h=`<div class="verd2 ${vc}">
+    <div class="verd2-glow"></div>
+    <div class="verd2-badge"><span class="verd2-arrow">${arr}</span>${badge}</div>
+    <div class="verd2-head">${verdTxt}</div>
+    <div class="verd2-sub">${subTxt}</div>
+  </div>
   <div class="tcol"><div class="tc-hd">Recent / Baseline</div>
     ${rows.map(([n,a,b])=>`<div class="trow"><span>${n}</span><span>${a??'—'} / ${b??'—'}</span></div>`).join('')}
   </div>
@@ -1165,7 +1220,10 @@ function renderTrend(d,wh){
   });
   h+=`</tbody></table></div>`;
   $('#trendOut').innerHTML=h;
-  anime({targets:'.verd',opacity:[0,1],translateY:[-6,0],duration:500,easing:'easeOutExpo'});
+  anime({targets:'.verd2-badge',scale:[.85,1],opacity:[0,1],duration:520,easing:'easeOutBack'});
+  anime({targets:'.verd2-head',opacity:[0,1],translateY:[10,0],duration:560,delay:120,easing:'easeOutExpo'});
+  anime({targets:'.verd2-sub',opacity:[0,1],duration:500,delay:240,easing:'easeOutQuad'});
+  anime({targets:'.verd2-glow',scale:[.6,1],opacity:[0,vc==='s'?.18:.32],duration:900,easing:'easeOutExpo'});
 }
 
 // ── COST ──
@@ -1186,11 +1244,16 @@ $('#btnCost').addEventListener('click',async()=>{
   finally{setBtn(btn,false);}
 });
 function renderCost(rows){
-  const sorted=[...rows].sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,12);
-  const maxC=Math.max(...sorted.map(r=>(r.prompt||0)*.075/1e6+(r.completion||0)*.30/1e6),.0000001);
+  if(!rows.length){
+    $('#costBars').innerHTML=emptyState('cost',
+      LANG==='es'?'Sin datos de tokens':'No token data',
+      LANG==='es'?'No se encontraron trazas con uso de tokens para analizar el costo.':'No traces with token usage were found to analyze cost.');
+    animEstate('#costBars');return;}
+  const sorted=[...rows].sort((a,b)=>(b.cost_usd||0)-(a.cost_usd||0)).slice(0,12);
+  const maxC=Math.max(...sorted.map(r=>r.cost_usd||0),.0000001);
   let h='';
   sorted.forEach(r=>{
-    const cost=(r.prompt||0)*.075/1e6+(r.completion||0)*.30/1e6;
+    const cost=r.cost_usd||0;
     const pct=(cost/maxC*100).toFixed(1);
     h+=`<div class="crow"><div class="cid">${r.trace_id?r.trace_id.slice(0,10)+'…':'?'}</div>
       <div class="ctrack"><div class="cfill" data-w="${pct}"></div></div>
