@@ -959,7 +959,12 @@ function numUp(el,to,dec=0){
 }
 async function api(path,opts={}){
   const r=await fetch('/api'+path,{headers:{'Content-Type':'application/json'},...opts});
-  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  if(!r.ok){
+    // Surface the backend's friendly message (error/detail) instead of a bare code.
+    let msg=`HTTP ${r.status}`;
+    try{const e=await r.json();if(e&&(e.error||e.detail))msg=e.error||e.detail;}catch{}
+    throw new Error(msg);
+  }
   return r.json();
 }
 function setBtn(btn,on){btn.disabled=on;on?btn.classList.add('loading'):btn.classList.remove('loading');}

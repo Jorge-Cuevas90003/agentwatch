@@ -140,6 +140,35 @@ def index():
     return (_static / "index.html").read_text(encoding="utf-8")
 
 
+# ── Phoenix error handling ────────────────────────────────────────────────────
+# Phoenix REST helpers call raise_for_status(), so an expired key or a Phoenix
+# outage would otherwise surface to the user as a bare "HTTP 500". Translate the
+# common cases into a clear message the frontend can show verbatim.
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+
+@app.exception_handler(httpx.HTTPStatusError)
+async def _phoenix_http_error(request: Request, exc: httpx.HTTPStatusError):
+    code = exc.response.status_code
+    if code in (401, 403):
+        msg = ("Phoenix rejected the request — your API key may be invalid or "
+               "expired. Reconnect with the ⚙ button.")
+    elif code == 404:
+        msg = "Not found in Phoenix. Check the project name."
+    else:
+        msg = f"Phoenix returned HTTP {code}."
+    return JSONResponse(status_code=502, content={"error": msg, "phoenix_status": code})
+
+
+@app.exception_handler(httpx.RequestError)
+async def _phoenix_conn_error(request: Request, exc: httpx.RequestError):
+    return JSONResponse(
+        status_code=502,
+        content={"error": "Could not reach Phoenix. Check the endpoint URL or your network."},
+    )
+
+
 # ── API endpoints ─────────────────────────────────────────────────────────────
 
 @app.get("/api/projects")
