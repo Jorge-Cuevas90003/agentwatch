@@ -21,9 +21,7 @@ from urllib.parse import quote
 
 import httpx
 
-# ── Gemini 2.5 Flash on-demand pricing (May 2026, non-thinking) ────────────
-PRICE_INPUT_PER_M_USD = 0.075    # per 1M input tokens
-PRICE_OUTPUT_PER_M_USD = 0.30    # per 1M output tokens
+from agentwatch_core.pricing import current_model
 
 # ── Eval prompt templates ───────────────────────────────────────────────────
 # Use <<INPUT>> / <<OUTPUT>> as placeholders — NOT {input}/{output} — so that
@@ -104,7 +102,7 @@ def _call_gemini(prompt: str) -> Dict[str, Any]:
     from google import genai
 
     client = genai.Client()
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    model = current_model()
     resp = client.models.generate_content(
         model=model,
         contents=prompt,
@@ -247,7 +245,7 @@ def run_llm_evals(
                     "explanation": explanation,
                 },
                 "metadata": {
-                    "evaluator_model": os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
+                    "evaluator_model": current_model(),
                 },
             })
 

@@ -71,7 +71,12 @@ def _is_configured() -> bool:
 
 @app.get("/api/setup/status")
 def api_setup_status():
-    return {"configured": _is_configured()}
+    from agentwatch_core.pricing import current_model, pricing_note
+    return {
+        "configured": _is_configured(),
+        "model": current_model(),
+        "pricing_note": pricing_note(),
+    }
 
 
 class SetupRequest(BaseModel):

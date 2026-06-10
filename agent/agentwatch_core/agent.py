@@ -31,13 +31,14 @@ from agentwatch_core.phoenix_evals import (
     compare_time_windows,
     create_failure_dataset,
 )
+from agentwatch_core.pricing import current_model
 
 # Load env so PHOENIX_API_KEY, PHOENIX_COLLECTOR_ENDPOINT etc. are available
 # both for tracing AgentWatch itself and for the Phoenix MCP subprocess.
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 setup_tracing()
 
-_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+_model = current_model()
 
 # Phoenix Cloud base URL (without /v1/traces suffix — MCP server takes the
 # hostname only).

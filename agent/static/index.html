@@ -480,7 +480,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
           <input class="p-in" type="number" id="costLim" value="20" min="1" max="50">
           <button class="btn-m" id="btnCost" data-i18n="analyze">Analyze</button>
         </div>
-        <div class="p-hint">Gemini 2.5 Flash — $0.075/1M in · $0.30/1M out</div>
+        <div class="p-hint" id="costHint">—</div>
         <div class="mstrip hidden" id="costMstr">
           <div class="mstrip-item"><div class="mi-lbl" data-i18n="tokens">Tokens</div><div class="mi-val m" id="c-tok">—</div></div>
           <div class="mstrip-item"><div class="mi-lbl" data-i18n="estCost">Est. Cost</div><div class="mi-val m" id="c-cost">—</div><div class="mi-sub">USD</div></div>
@@ -1153,6 +1153,7 @@ $('#btnCost').addEventListener('click',async()=>{
     anime({targets:'#costMstr .mstrip-item',opacity:[0,1],translateY:[8,0],delay:anime.stagger(80),duration:400,easing:'easeOutExpo'});
     numUp($('#c-tok'),agg.total_tokens);
     $('#c-cost').textContent=fmt.usd(agg.estimated_cost_usd);
+    if(agg.pricing_note)$('#costHint').textContent=agg.pricing_note;
     renderCost(d.per_trace||[]);
   }catch(e){showAlert('#costBars','err','Failed: '+e.message);}
   finally{setBtn(btn,false);}
@@ -1287,6 +1288,7 @@ $('#btnSetup').addEventListener('click', async () => {
 // INIT
 applyI18n();
 fetch('/api/setup/status').then(r=>r.json()).then(d=>{
+  if (d.pricing_note) $('#costHint').textContent = d.pricing_note;
   if (!d.configured) {
     $('#setupOverlay').classList.remove('hidden');
     applyI18n(); // apply i18n to setup screen too
