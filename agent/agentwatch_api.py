@@ -59,6 +59,7 @@ app = FastAPI(title="AgentWatch", docs_url=None, redoc_url=None)
 
 # ── In-memory chat sessions ──────────────────────────────────────────────────
 _sessions: dict = {}
+_MAX_SESSIONS = 50  # cap so the free-tier instance can't OOM on accumulated runners
 
 _env_path = _root.parent / ".env"
 
@@ -208,6 +209,12 @@ async def api_chat(req: ChatRequest):
     session_id = req.session_id or secrets.token_hex(8)
 
     if session_id not in _sessions:
+        # Bound the in-memory session store. Each session keeps an InMemoryRunner
+        # alive; on a 512MB free tier with multiple judges trying the demo these
+        # would accumulate until OOM. Evict the oldest once we pass the cap (dicts
+        # preserve insertion order, so the first key is the least-recently-created).
+        while len(_sessions) >= _MAX_SESSIONS:
+            _sessions.pop(next(iter(_sessions)), None)
         app_name = "agentwatch_web"
         runner = InMemoryRunner(agent=root_agent, app_name=app_name)
         await runner.session_service.create_session(

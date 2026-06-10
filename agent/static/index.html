@@ -314,16 +314,18 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
   border-radius:50%;filter:blur(60px);opacity:.32;pointer-events:none;z-index:0}
 .verd2.i .verd2-glow{background:radial-gradient(circle,var(--g),transparent 70%)}
 .verd2.d .verd2-glow{background:radial-gradient(circle,var(--r),transparent 70%)}
+.verd2.x .verd2-glow{background:radial-gradient(circle,var(--a),transparent 70%);opacity:.26}
 .verd2.s .verd2-glow{background:radial-gradient(circle,var(--m),transparent 70%);opacity:.18}
 .verd2-badge{position:relative;z-index:1;display:flex;align-items:center;gap:10px;
   padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;letter-spacing:.04em;
   border:1px solid;backdrop-filter:blur(8px)}
 .verd2.i .verd2-badge{color:var(--g);border-color:rgba(50,215,75,.4);background:rgba(50,215,75,.10)}
 .verd2.d .verd2-badge{color:var(--r);border-color:rgba(255,69,58,.4);background:rgba(255,69,58,.10)}
+.verd2.x .verd2-badge{color:var(--a);border-color:rgba(255,214,10,.4);background:rgba(255,214,10,.10)}
 .verd2.s .verd2-badge{color:var(--mid);border-color:var(--bdr);background:rgba(255,255,255,.04)}
 .verd2-arrow{font-size:18px;line-height:1;display:inline-block}
 .verd2-head{position:relative;z-index:1;margin-top:16px;font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1}
-.verd2.i .verd2-head{color:var(--g)}.verd2.d .verd2-head{color:var(--r)}.verd2.s .verd2-head{color:var(--txt)}
+.verd2.i .verd2-head{color:var(--g)}.verd2.d .verd2-head{color:var(--r)}.verd2.x .verd2-head{color:var(--a)}.verd2.s .verd2-head{color:var(--txt)}
 .verd2-sub{position:relative;z-index:1;font-size:12px;color:var(--mid);margin-top:7px}
 /* ─── SETUP SCREEN ───────────────────────────────── */
 .setup-overlay{
@@ -1213,19 +1215,29 @@ $('#btnTrend').addEventListener('click',async()=>{
   finally{setBtn(btn,false);}
 });
 function renderTrend(d,wh){
-  const v=d.verdict||'STABLE';const isI=v.includes('IMPROVED'),isD=v.includes('DEGRADED');
-  const vc=isI?'i':isD?'d':'s';
+  const v=d.verdict||'STABLE';
+  const isI=v.includes('IMPROVED'),isD=v.includes('DEGRADED'),isM=v.includes('MIXED'),isND=v.includes('NO DATA');
+  const vc=isI?'i':isD?'d':isM?'x':'s';
   const wa=d.window_a_recent||{},wb=d.window_b_baseline||{},dl=d.delta||{};
+  const latDeltaTxt=dl.avg_latency_ms!=null
+    ?`${dl.avg_latency_ms.toFixed(0)}ms${dl.avg_latency_pct!=null?` (${dl.avg_latency_pct>0?'+':''}${dl.avg_latency_pct}%)`:''}`
+    :null;
   const rows=[
     ['Error Rate',fmt.pct(wa.error_rate),fmt.pct(wb.error_rate),dl.error_rate,true],
-    ['Avg Latency',fmt.ms(wa.avg_latency_ms),fmt.ms(wb.avg_latency_ms),dl.avg_latency_ms!=null?dl.avg_latency_ms.toFixed(0)+'ms':null,true],
+    ['Avg Latency',fmt.ms(wa.avg_latency_ms),fmt.ms(wb.avg_latency_ms),latDeltaTxt,true],
     ['p95 Latency',fmt.ms(wa.p95_latency_ms),fmt.ms(wb.p95_latency_ms),dl.p95_latency_ms!=null?dl.p95_latency_ms.toFixed(0)+'ms':null,true],
     ['Traces',wa.count,wb.count,null,false],
   ];
-  const verdTxt=v.replace(/[^\w\s]/g,'').trim();
-  const arr=isI?'↑':isD?'↓':'→';
-  const badge=isI?(LANG==='es'?'MEJORANDO':'IMPROVING'):isD?(LANG==='es'?'EMPEORANDO':'DEGRADING'):(LANG==='es'?'ESTABLE':'STABLE');
-  const subTxt=LANG==='es'?`últimas ${wh}h vs ${wh}h previas`:`last ${wh}h vs prior ${wh}h`;
+  const verdTxt=isND?(LANG==='es'?'SIN DATOS':'NO DATA'):v.replace(/[^\w\s]/g,'').trim();
+  const arr=isI?'↑':isD?'↓':isM?'↔':'→';
+  const badge=isND?(LANG==='es'?'SIN DATOS':'NO DATA')
+    :isI?(LANG==='es'?'MEJORANDO':'IMPROVING')
+    :isD?(LANG==='es'?'EMPEORANDO':'DEGRADING')
+    :isM?(LANG==='es'?'MIXTO':'MIXED')
+    :(LANG==='es'?'ESTABLE':'STABLE');
+  const subTxt=isND
+    ?(LANG==='es'?`sin trazas en ambas ventanas de ${wh}h`:`no traces in both ${wh}h windows`)
+    :(LANG==='es'?`últimas ${wh}h vs ${wh}h previas`:`last ${wh}h vs prior ${wh}h`);
   let h=`<div class="verd2 ${vc}">
     <div class="verd2-glow"></div>
     <div class="verd2-badge"><span class="verd2-arrow">${arr}</span>${badge}</div>

@@ -384,24 +384,59 @@ def compare_time_windows(
         return round(a - b, 3) if a is not None and b is not None else None
 
     # For lower-is-better metrics: negative delta = improvement
+    _lat_pct = (
+        round((sa["avg_latency_ms"] - sb["avg_latency_ms"]) / sb["avg_latency_ms"] * 100, 1)
+        if sb["avg_latency_ms"] and sa["avg_latency_ms"] is not None
+        else None
+    )
     delta = {
         "error_rate": _d(sa["error_rate"], sb["error_rate"]),
         "avg_latency_ms": _d(sa["avg_latency_ms"], sb["avg_latency_ms"]),
+        "avg_latency_pct": _lat_pct,
         "p95_latency_ms": _d(sa["p95_latency_ms"], sb["p95_latency_ms"]),
         "note": "Negative = improved vs baseline. Positive = regression.",
     }
 
-    # Overall verdict
-    error_delta = delta.get("error_rate") or 0.0
-    lat_delta = delta.get("avg_latency_ms") or 0.0
-    if error_delta < -0.01 or lat_delta < -500:
+    # Overall verdict.
+    #
+    # Latency is judged on RELATIVE change, not an absolute ms threshold: agent
+    # latencies here span ~1s to ~2min, so a fixed ±500ms cutoff would flag pure
+    # noise as a regression on a 60s trace. 10% is the noise floor. Error rate is
+    # judged on absolute percentage-point change (±2pp).
+    #
+    # Each metric votes independently (−1 improved / +1 regressed / 0 flat). We
+    # never let one improving metric mask another that regressed — mixed signals
+    # surface as MIXED rather than being rounded to IMPROVED.
+    error_delta = delta.get("error_rate")  # absolute pp change, lower is better
+    lat_pct = None
+    if sb["avg_latency_ms"] and sa["avg_latency_ms"] is not None:
+        lat_pct = (sa["avg_latency_ms"] - sb["avg_latency_ms"]) / sb["avg_latency_ms"]
+
+    def _vote(val: Optional[float], eps: float) -> int:
+        if val is None:
+            return 0
+        if val < -eps:
+            return -1  # improved (metric went down)
+        if val > eps:
+            return 1   # regressed (metric went up)
+        return 0
+
+    votes = [_vote(error_delta, 0.02), _vote(lat_pct, 0.10)]
+    improved = any(v < 0 for v in votes)
+    regressed = any(v > 0 for v in votes)
+
+    if improved and regressed:
+        verdict = "MIXED ↔️"
+    elif improved:
         verdict = "IMPROVED 📈"
-    elif error_delta > 0.01 or lat_delta > 500:
+    elif regressed:
         verdict = "DEGRADED 📉"
     else:
         verdict = "STABLE ➡️"
 
-    if sa["count"] == 0 and sb["count"] == 0:
+    # Can only compare when BOTH windows have traces; otherwise the delta is
+    # meaningless (a single populated window was being rounded to STABLE before).
+    if sa["count"] == 0 or sb["count"] == 0:
         verdict = "NO DATA — try a larger window_hours"
 
     return {
