@@ -13,7 +13,7 @@ Production monitoring dashboard for AI agents. Connects to **Arize Phoenix** to 
 | **Traces** | Recent runs and failures for any Phoenix project. Click any trace to expand spans. |
 | **Analysis → Evals** | LLM-as-judge evaluation (hallucination, relevance, QA, conciseness). Results posted back to Phoenix automatically. |
 | **Analysis → Trend** | Compare the last N hours vs the N hours before — get an IMPROVED / DEGRADED / STABLE verdict. |
-| **Analysis → Cost** | Token usage and estimated USD cost per trace (Gemini 2.5 Flash pricing). |
+| **Analysis → Cost** | Token usage and estimated USD cost per trace, priced for the configured Gemini model. |
 | **Chat** | Ask in plain English or Spanish: *"Why is my agent failing?"* — the built-in Gemini agent pulls real traces from Phoenix and gives you a root-cause diagnosis. |
 
 The **`i` button** in the top bar explains how to use the app.
@@ -63,14 +63,14 @@ GOOGLE_API_KEY=your_key           # simplest
 # or Vertex AI:
 # GOOGLE_GENAI_USE_VERTEXAI=1
 # GOOGLE_CLOUD_PROJECT=your-project-id
-# GOOGLE_CLOUD_LOCATION=us-central1
+# GOOGLE_CLOUD_LOCATION=global     # Gemini 3 models are served from the global endpoint
 
 # Arize Phoenix Cloud
 PHOENIX_API_KEY=px_live_...
 PHOENIX_COLLECTOR_ENDPOINT=https://app.phoenix.arize.com/s/your-space
 
-# Optional
-GEMINI_MODEL=gemini-2.5-flash
+# Optional — defaults to gemini-3-flash-preview
+GEMINI_MODEL=gemini-3-flash-preview
 PHOENIX_PROJECT_NAME=agentwatch
 ```
 
