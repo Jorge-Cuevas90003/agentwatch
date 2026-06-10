@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -238,6 +238,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
 .mrole{font-size:11px;font-weight:600;color:var(--mid);margin-bottom:7px}
 .mrole.a{color:var(--m)}
 .mbody{font-size:13px;line-height:1.65;color:var(--txt);white-space:pre-wrap;word-break:break-word}
+.mbody .md-h{font-weight:600;font-size:13px;color:var(--txt);margin:10px 0 4px}
+.mbody .md-ul{margin:6px 0;padding-left:20px;list-style:disc}
+.mbody .md-ul li{margin:2px 0}
+.mbody .md-code{font-family:var(--mono);font-size:11.5px;background:rgba(255,255,255,.07);border:1px solid var(--bdr);border-radius:4px;padding:1px 5px;color:var(--m)}
+.mbody .md-pre{font-family:var(--mono);font-size:11.5px;background:rgba(0,0,0,.35);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin:8px 0;overflow-x:auto;white-space:pre;line-height:1.5}
+.mbody .md-pre code{color:var(--txt);background:none;border:none;padding:0}
+.mbody strong{font-weight:600;color:var(--txt)}
+.mbody em{font-style:italic}
 .tev{display:flex;align-items:flex-start;gap:7px;padding:7px 20px;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px;color:var(--mid)}
 .tev .arr{flex-shrink:0;margin-top:1px}
 .tev.call .arr{color:var(--m)}.tev.res .arr{color:var(--g)}
@@ -853,6 +861,25 @@ const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const enc=s=>encodeURIComponent(s);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// Minimal, XSS-safe markdown for chat answers: escape first, then transform.
+function renderMd(raw){
+  const blocks=[];
+  let t=esc(raw);
+  t=t.replace(/```(?:[a-zA-Z0-9_-]*)\n?([\s\S]*?)```/g,(_,c)=>{
+    blocks.push(`<pre class="md-pre"><code>${c.replace(/\n+$/,'')}</code></pre>`);
+    return `@@CB${blocks.length-1}@@`;
+  });
+  t=t.replace(/`([^`\n]+)`/g,'<code class="md-code">$1</code>');
+  t=t.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
+  t=t.replace(/(^|[\s(])\*([^*\n]+)\*/g,'$1<em>$2</em>');
+  t=t.replace(/^\s*#{1,4}\s+(.+)$/gm,'<div class="md-h">$1</div>');
+  t=t.replace(/^[ \t]*[-*]\s+(.+)$/gm,'<li>$1</li>');
+  t=t.replace(/(?:<li>[\s\S]*?<\/li>\n?)+/g,m=>`<ul class="md-ul">${m.replace(/\n/g,'')}</ul>`);
+  t=t.replace(/\n/g,'<br>');
+  t=t.replace(/<br>(<ul|<pre|<div class="md-h")/g,'$1').replace(/(<\/ul>|<\/pre>|<\/div>)<br>/g,'$1');
+  t=t.replace(/(?:<br>)?@@CB(\d+)@@(?:<br>)?/g,(_,i)=>blocks[+i]);
+  return t;
+}
 const fmt={
   ms:v=>v==null?'—':v>=1000?`${(v/1000).toFixed(1)}s`:`${Math.round(v)}ms`,
   tok:v=>v==null?'—':v>=1000?`${(v/1000).toFixed(1)}k`:`${v}`,
@@ -1222,12 +1249,15 @@ async function sendMsg(text){
   bubble.innerHTML='<div class="sp"></div>';
   let full='',hadError=false;
   const toolCalls=[],toolResults=[];
+  const ac=new AbortController();
+  let idle=setTimeout(()=>ac.abort(),100000); // abort if no data for 100s
   try{
-    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,session_id:G.sessionId})});
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,session_id:G.sessionId}),signal:ac.signal});
     if(!r.ok)throw new Error(`HTTP ${r.status}`);
     const reader=r.body.getReader();const dec=new TextDecoder();let buf='';
     while(true){
       const {done,value}=await reader.read();if(done)break;
+      clearTimeout(idle);idle=setTimeout(()=>ac.abort(),100000); // reset on each chunk
       buf+=dec.decode(value,{stream:true});
       const lines=buf.split('\n');buf=lines.pop();
       for(const ln of lines){
@@ -1237,7 +1267,7 @@ async function sendMsg(text){
           if(ev.type==='session')G.sessionId=ev.session_id;
           else if(ev.type==='text'){
             full+=ev.content;
-            bubble.innerHTML=esc(full).replace(/\n/g,'<br>');scroll();
+            bubble.innerHTML=renderMd(full);scroll();
           }else if(ev.type==='tool_call'){
             toolCalls.push(ev.name);
             addTool('call',ev.name,JSON.stringify(ev.args));
@@ -1247,7 +1277,7 @@ async function sendMsg(text){
             addTool('res',ev.name,ev.preview);
             if(!full)bubble.innerHTML=`<span style="color:var(--mid)">Reading ${esc(ev.name)} results...</span>`;
           }else if(ev.type==='done'){
-            bubble.innerHTML=full?esc(full).replace(/\n/g,'<br>'):toolOnlyHtml(toolCalls,toolResults);
+            bubble.innerHTML=full?renderMd(full):toolOnlyHtml(toolCalls,toolResults);
           }else if(ev.type==='error'){
             hadError=true;
             bubble.innerHTML=`<span style="color:var(--r)">${esc(ev.message)}</span>`;
@@ -1255,10 +1285,17 @@ async function sendMsg(text){
         }catch{}
       }
     }
-    if(full)bubble.innerHTML=esc(full).replace(/\n/g,'<br>');
+    if(full)bubble.innerHTML=renderMd(full);
     else if(!hadError)bubble.innerHTML=toolOnlyHtml(toolCalls,toolResults);
-  }catch(e){bubble.innerHTML=`<span style="color:var(--r)">Error: ${esc(e.message)}</span>`;}
-  finally{setBtn(btn,false);scroll();}
+  }catch(e){
+    if(e.name==='AbortError'){
+      const msg=LANG==='es'?'La respuesta tardó demasiado. El servidor puede estar despertando (free tier) — intenta de nuevo.':'The response took too long. The server may be waking up (free tier) — please try again.';
+      bubble.innerHTML=`<span style="color:var(--mid)">${msg}</span>`;
+    }else{
+      bubble.innerHTML=`<span style="color:var(--r)">Error: ${esc(e.message)}</span>`;
+    }
+  }
+  finally{clearTimeout(idle);setBtn(btn,false);scroll();}
 }
 $('#btnSend').addEventListener('click',()=>sendMsg($('#chatIn').value));
 $('#chatIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(e.target.value);}});

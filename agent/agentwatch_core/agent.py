@@ -100,10 +100,26 @@ _tools = [
 _phoenix_toolset = _build_phoenix_mcp_toolset()
 if _phoenix_toolset is not None:
     _tools.append(_phoenix_toolset)
+    _instruction = AGENTWATCH_INSTRUCTION
+else:
+    # No Node/npx on this host → the Tier-2 Phoenix MCP tools aren't loaded.
+    # Tell the agent so it relies on the Python tools and points the user to the
+    # Phoenix UI for experiments/prompt versioning instead of promising MCP
+    # actions it cannot perform.
+    _instruction = AGENTWATCH_INSTRUCTION + (
+        "\n\n# Deployment note\n"
+        "The Tier-2 Phoenix MCP tools (list-prompts, update-prompt, "
+        "run-experiment, get-trace) are NOT available in this deployment. "
+        "Use only the Tier-1 Python tools above. When a step would need an MCP "
+        "tool (e.g. running an experiment or versioning a prompt), do the "
+        "analysis with the Python tools, then tell the user the exact action to "
+        "take in the Phoenix UI — never claim you ran an experiment or changed a "
+        "prompt yourself."
+    )
 
 root_agent = Agent(
     model=_model,
     name="agentwatch",
-    instruction=AGENTWATCH_INSTRUCTION,
+    instruction=_instruction,
     tools=_tools,
 )
