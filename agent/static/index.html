@@ -228,6 +228,21 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
 .ctrack{flex:1;height:2px;background:rgba(255,255,255,.07);border-radius:1px}.cfill{height:100%;background:var(--m);width:0;border-radius:1px}
 .ctok{font-size:11px;color:var(--mid);width:58px;text-align:right;font-family:var(--mono)}.cusd{font-size:11px;color:var(--m);width:60px;text-align:right;font-family:var(--mono)}
 
+/* A/B experiment */
+.abcmp{padding:16px 20px;border-bottom:1px solid var(--bdr);display:flex;flex-direction:column;gap:12px}
+.abrow{display:flex;align-items:center;gap:10px}
+.ablbl{font-size:11px;color:var(--mid);width:72px;flex-shrink:0}
+.abtrack{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden}
+.abfill{height:100%;width:0;border-radius:5px}
+.abfill.base{background:linear-gradient(90deg,rgba(245,245,247,.25),rgba(245,245,247,.45))}
+.abfill.cand{background:linear-gradient(90deg,var(--m),#5AB0FF)}
+.abval{font-size:13px;font-weight:600;font-family:var(--mono);width:40px;text-align:right}
+.abspan{padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.abspan-q{font-size:11px;color:var(--txt);margin-bottom:5px;line-height:1.4}
+.abspan-sc{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--mid);font-family:var(--mono)}
+.abspan-sc .di{color:var(--g);font-weight:600}.abspan-sc .dd{color:var(--r);font-weight:600}.abspan-sc .ds{color:var(--mid)}
+.abspan-out{font-size:10px;color:var(--mid);margin-top:5px;padding:7px 10px;background:rgba(41,151,255,.06);border-left:2px solid var(--bdr2);border-radius:0 4px 4px 0;line-height:1.45;font-family:var(--mono)}
+
 /* chat */
 .chat-w{display:flex;flex-direction:column;height:calc(100vh - 48px - 44px);height:calc(100dvh - 48px - 44px)}
 .qrow{display:flex;flex-wrap:wrap;gap:0;border-bottom:1px solid var(--bdr)}
@@ -505,6 +520,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
           <div class="pill active" data-av="evals" data-i18n="evals">Evals</div>
           <div class="pill" data-av="trend" data-i18n="trend">Trend</div>
           <div class="pill" data-av="cost" data-i18n="cost">Cost</div>
+          <div class="pill" data-av="experiment">A/B</div>
         </div>
       </div>
       <div id="av-evals">
@@ -546,6 +562,25 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
           <div class="mstrip-item"><div class="mi-lbl" data-i18n="estCost">Est. Cost</div><div class="mi-val m" id="c-cost">—</div><div class="mi-sub">USD</div></div>
         </div>
         <div class="p20" id="costBars" style="padding-top:12px"></div>
+      </div>
+      <div id="av-experiment" style="display:none">
+        <div class="p-ctrl" style="flex-direction:column;align-items:stretch;gap:10px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div class="pills" id="expEvalPills">
+              <div class="pill" data-v="hallucination">Hallu</div>
+              <div class="pill" data-v="relevance">Relev</div>
+              <div class="pill active" data-v="qa_correctness">QA</div>
+              <div class="pill" data-v="conciseness">Concise</div>
+            </div>
+            <span class="p-label">N</span>
+            <input class="p-in" type="number" id="expLim" value="3" min="1" max="5" style="width:54px">
+            <button class="btn-m" id="btnExp" style="margin-left:auto">Run A/B</button>
+          </div>
+          <textarea class="cin" id="expPrompt" rows="3" style="max-height:140px"
+            placeholder="Candidate prompt to test — e.g. 'Answer in at most 2 short sentences. Be direct, no preamble.'"></textarea>
+        </div>
+        <div class="p-hint">Runs your prompt against real production requests and judges old vs new on the same rubric. Each span = 3 Gemini calls.</div>
+        <div id="expOut"></div>
       </div>
     </div>
 
@@ -1079,7 +1114,7 @@ function updateHud(traces,stats){
 $$('#analysisPills .pill').forEach(p=>p.addEventListener('click',()=>{
   $$('#analysisPills .pill').forEach(x=>x.classList.remove('active'));
   p.classList.add('active');G.analysisView=p.dataset.av;
-  ['evals','trend','cost'].forEach(v=>$(`#av-${v}`).style.display=v===p.dataset.av?'block':'none');
+  ['evals','trend','cost','experiment'].forEach(v=>$(`#av-${v}`).style.display=v===p.dataset.av?'block':'none');
 }));
 
 // ── TABLE ──
@@ -1320,6 +1355,70 @@ function renderCost(rows){
   });
   $('#costBars').innerHTML=h;
   setTimeout(()=>$$('.cfill').forEach(el=>anime({targets:el,width:el.dataset.w+'%',duration:800,easing:'easeOutExpo'})),80);
+}
+
+// ── A/B PROMPT EXPERIMENT (closes the self-improvement loop) ──
+G.expEval='qa_correctness';
+$$('#expEvalPills .pill').forEach(p=>p.addEventListener('click',()=>{
+  $$('#expEvalPills .pill').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active');G.expEval=p.dataset.v;
+}));
+$('#btnExp').addEventListener('click',async()=>{
+  if(!G.project)return;
+  const prompt=$('#expPrompt').value.trim();
+  if(!prompt){showAlert('#expOut','info',LANG==='es'?'Escribe un prompt candidato para probar.':'Write a candidate prompt to test.');return;}
+  const btn=$('#btnExp');const lim=parseInt($('#expLim').value)||3;
+  setBtn(btn,true);
+  $('#expOut').innerHTML=`<div style="padding:16px 20px;display:flex;gap:8px;align-items:center;font-size:11px;color:var(--mid)"><div class="sp"></div>${LANG==='es'?'Ejecutando A/B contra producción…':'Running A/B against production…'}</div>`;
+  try{
+    const d=await api(`/projects/${enc(G.project)}/experiment`,{method:'POST',body:JSON.stringify({candidate_instruction:prompt,eval_type:G.expEval,limit:lim})});
+    if(d.error){$('#expOut').innerHTML=`<div class="alert err" style="margin:12px">${esc(d.error)}</div>`;return;}
+    renderExperiment(d);
+  }catch(e){$('#expOut').innerHTML=`<div class="alert err" style="margin:12px">Failed: ${esc(e.message)}</div>`;}
+  finally{setBtn(btn,false);}
+});
+function renderExperiment(d){
+  const v=d.verdict||'';
+  const isW=v.includes('BETTER'),isL=v.includes('WORSE'),isInc=v.includes('INCONCLUSIVE');
+  const vc=isW?'i':isL?'d':isInc?'s':'x';
+  const arr=isW?'↑':isL?'↓':'→';
+  const badge=isW?(LANG==='es'?'CANDIDATO MEJOR':'CANDIDATE BETTER')
+    :isL?(LANG==='es'?'CANDIDATO PEOR':'CANDIDATE WORSE')
+    :isInc?(LANG==='es'?'SIN CONCLUSIÓN':'INCONCLUSIVE')
+    :(LANG==='es'?'EMPATE':'TIE');
+  const b=d.avg_baseline_score,c=d.avg_candidate_score;
+  const pc=x=>x==null?0:Math.max(0,Math.min(100,x*100));
+  let h=`<div class="verd2 ${vc}" style="padding-top:28px">
+    <div class="verd2-glow"></div>
+    <div class="verd2-badge"><span class="verd2-arrow">${arr}</span>${badge}</div>
+    <div class="verd2-head" style="font-size:24px">${d.avg_delta!=null?(d.avg_delta>0?'+':'')+d.avg_delta.toFixed(2):'—'}</div>
+    <div class="verd2-sub">${d.wins}W · ${d.losses}L · ${d.ties}T ${LANG==='es'?'· puntuado sobre':'· scored on'} ${esc(d.eval_type||'')}</div>
+  </div>
+  <div class="abcmp">
+    <div class="abrow"><div class="ablbl">${LANG==='es'?'Producción':'Baseline'}</div>
+      <div class="abtrack"><div class="abfill base" data-w="${pc(b)}"></div></div>
+      <div class="abval">${b!=null?b.toFixed(2):'—'}</div></div>
+    <div class="abrow"><div class="ablbl">${LANG==='es'?'Candidato':'Candidate'}</div>
+      <div class="abtrack"><div class="abfill cand" data-w="${pc(c)}"></div></div>
+      <div class="abval">${c!=null?c.toFixed(2):'—'}</div></div>
+  </div>
+  <div class="tcol"><div class="tc-hd">${LANG==='es'?'Por solicitud':'Per request'}</div>`;
+  (d.per_span||[]).forEach(r=>{
+    const dl=r.delta;const dc=dl==null?'ds':dl>0.05?'di':dl<-0.05?'dd':'ds';
+    const dtxt=dl==null?'—':(dl>0?'+':'')+dl.toFixed(2);
+    h+=`<div class="abspan">
+      <div class="abspan-q">${esc(r.question_preview||'—')}</div>
+      <div class="abspan-sc"><span>${r.baseline_score!=null?r.baseline_score.toFixed(2):'—'} → ${r.candidate_score!=null?r.candidate_score.toFixed(2):'—'}</span><span class="${dc}">${dtxt}</span></div>
+      ${r.candidate_output_preview?`<div class="abspan-out">${esc(r.candidate_output_preview)}</div>`:''}
+    </div>`;
+  });
+  h+=`</div>`;
+  $('#expOut').innerHTML=h;
+  anime({targets:'#expOut .verd2-badge',scale:[.85,1],opacity:[0,1],duration:520,easing:'easeOutBack'});
+  anime({targets:'#expOut .verd2-head',opacity:[0,1],translateY:[10,0],duration:560,delay:120,easing:'easeOutExpo'});
+  anime({targets:'#expOut .verd2-glow',scale:[.6,1],opacity:[0,vc==='s'?.18:.30],duration:900,easing:'easeOutExpo'});
+  setTimeout(()=>$$('#expOut .abfill').forEach(el=>anime({targets:el,width:el.dataset.w+'%',duration:850,easing:'easeOutExpo'})),120);
+  anime({targets:'#expOut .abspan',opacity:[0,1],translateY:[8,0],delay:anime.stagger(60,{start:200}),duration:380,easing:'easeOutExpo'});
 }
 
 // ── CHAT ──
