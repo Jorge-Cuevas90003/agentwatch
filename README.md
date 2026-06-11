@@ -13,7 +13,7 @@ Production monitoring dashboard for AI agents. Connects to **Arize Phoenix** to 
 | **Traces** | Recent runs and failures for any Phoenix project. Click any trace to expand spans. |
 | **Analysis → Evals** | LLM-as-judge evaluation (hallucination, relevance, QA, conciseness). Results posted back to Phoenix automatically. |
 | **Analysis → Trend** | Compare the last N hours vs the N hours before — get an IMPROVED / DEGRADED / STABLE verdict. |
-| **Analysis → Cost** | Token usage and estimated USD cost per trace (Gemini 2.5 Flash pricing). |
+| **Analysis → Cost** | Token usage and estimated USD cost per trace, priced for the configured Gemini model. |
 | **Chat** | Ask in plain English or Spanish: *"Why is my agent failing?"* — the built-in Gemini agent pulls real traces from Phoenix and gives you a root-cause diagnosis. |
 
 The **`i` button** in the top bar explains how to use the app.
@@ -25,18 +25,35 @@ The **`i` button** in the top bar explains how to use the app.
 - Arize Phoenix account — API key at [app.phoenix.arize.com](https://app.phoenix.arize.com)
 - Google API key (Gemini) **or** GCP project with Vertex AI
 
-## Quickstart
+## Live Demo
+
+> **[agentwatch-v4x7.onrender.com](https://agentwatch-v4x7.onrender.com)** — opens directly, no login needed.
+> First load may take ~30 s (free tier cold start).
+
+## Deploy your own (free, 5 minutes)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+1. Fork this repo
+2. Go to [render.com](https://render.com) → New → Web Service → connect your fork
+3. Render auto-detects `render.yaml`
+4. Set environment variables in Render dashboard:
+   - `PHOENIX_API_KEY` — from [app.phoenix.arize.com](https://app.phoenix.arize.com) → Settings → API Keys
+   - `PHOENIX_COLLECTOR_ENDPOINT` — e.g. `https://app.phoenix.arize.com/s/your-space`
+   - `GOOGLE_API_KEY` — from [aistudio.google.com](https://aistudio.google.com)
+5. Click **Deploy**
+
+Or use the in-app setup screen — open the URL and click **Connect Phoenix Account**.
+
+## Local development
 
 ```bash
 git clone https://github.com/your-username/agentwatch
 cd agentwatch
-cp .env.example .env
-# Edit .env — fill in PHOENIX_API_KEY, PHOENIX_COLLECTOR_ENDPOINT, and GOOGLE_API_KEY
-uv sync
-uv run uvicorn agent.agentwatch_api:app --port 8080 --reload
+make setup   # installs deps + creates .env
+# edit .env — fill in your API keys
+make dev     # starts on http://localhost:8080
 ```
-
-Open **http://localhost:8080**.
 
 ## Configuration (`.env`)
 
@@ -46,14 +63,14 @@ GOOGLE_API_KEY=your_key           # simplest
 # or Vertex AI:
 # GOOGLE_GENAI_USE_VERTEXAI=1
 # GOOGLE_CLOUD_PROJECT=your-project-id
-# GOOGLE_CLOUD_LOCATION=us-central1
+# GOOGLE_CLOUD_LOCATION=global     # Gemini 3 models are served from the global endpoint
 
 # Arize Phoenix Cloud
 PHOENIX_API_KEY=px_live_...
 PHOENIX_COLLECTOR_ENDPOINT=https://app.phoenix.arize.com/s/your-space
 
-# Optional
-GEMINI_MODEL=gemini-2.5-flash
+# Optional — defaults to gemini-3-flash-preview
+GEMINI_MODEL=gemini-3-flash-preview
 PHOENIX_PROJECT_NAME=agentwatch
 ```
 

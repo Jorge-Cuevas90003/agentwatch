@@ -1,17 +1,14 @@
-.PHONY: setup run run-adk help
+.PHONY: setup dev help
 
 help:
-	@echo "Targets:"
-	@echo "  make setup   - uv sync + remind to copy .env"
-	@echo "  make run     - one-shot traced run (MESSAGE=...)"
-	@echo "  make run-adk - ADK CLI dev loop (cd agent && adk run shopping_demo)"
+	@echo "AgentWatch"
+	@echo ""
+	@echo "  make setup   Install dependencies"
+	@echo "  make dev     Start the web server (http://localhost:8080)"
 
 setup:
 	uv sync
-	@test -f .env || echo "Tip: copy .env.example to .env and add keys."
+	@test -f .env || (cp .env.example .env && echo "Created .env — add your API keys then run: make dev")
 
-run:
-	cd agent && uv run python main.py "$(if $(MESSAGE),$(MESSAGE),Help me find a floral summer dress and buy size M.)"
-
-run-adk:
-	cd agent && uv run adk run shopping_demo
+dev:
+	cd agent && uv run uvicorn agentwatch_api:app --port 8080 --reload

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: agentwatch
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -e .
+    startCommand: cd agent && uvicorn agentwatch_api:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PHOENIX_API_KEY
+        sync: false
+      - key: PHOENIX_COLLECTOR_ENDPOINT
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GOOGLE_GENAI_USE_VERTEXAI
+        value: "0"

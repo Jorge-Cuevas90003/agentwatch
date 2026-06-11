@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -228,8 +228,23 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
 .ctrack{flex:1;height:2px;background:rgba(255,255,255,.07);border-radius:1px}.cfill{height:100%;background:var(--m);width:0;border-radius:1px}
 .ctok{font-size:11px;color:var(--mid);width:58px;text-align:right;font-family:var(--mono)}.cusd{font-size:11px;color:var(--m);width:60px;text-align:right;font-family:var(--mono)}
 
+/* A/B experiment */
+.abcmp{padding:16px 20px;border-bottom:1px solid var(--bdr);display:flex;flex-direction:column;gap:12px}
+.abrow{display:flex;align-items:center;gap:10px}
+.ablbl{font-size:11px;color:var(--mid);width:72px;flex-shrink:0}
+.abtrack{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:5px;overflow:hidden}
+.abfill{height:100%;width:0;border-radius:5px}
+.abfill.base{background:linear-gradient(90deg,rgba(245,245,247,.25),rgba(245,245,247,.45))}
+.abfill.cand{background:linear-gradient(90deg,var(--m),#5AB0FF)}
+.abval{font-size:13px;font-weight:600;font-family:var(--mono);width:40px;text-align:right}
+.abspan{padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.abspan-q{font-size:11px;color:var(--txt);margin-bottom:5px;line-height:1.4}
+.abspan-sc{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--mid);font-family:var(--mono)}
+.abspan-sc .di{color:var(--g);font-weight:600}.abspan-sc .dd{color:var(--r);font-weight:600}.abspan-sc .ds{color:var(--mid)}
+.abspan-out{font-size:10px;color:var(--mid);margin-top:5px;padding:7px 10px;background:rgba(41,151,255,.06);border-left:2px solid var(--bdr2);border-radius:0 4px 4px 0;line-height:1.45;font-family:var(--mono)}
+
 /* chat */
-.chat-w{display:flex;flex-direction:column;height:calc(100vh - 48px - 44px)}
+.chat-w{display:flex;flex-direction:column;height:calc(100vh - 48px - 44px);height:calc(100dvh - 48px - 44px)}
 .qrow{display:flex;flex-wrap:wrap;gap:0;border-bottom:1px solid var(--bdr)}
 .qp{font-size:12px;font-weight:500;color:var(--mid);padding:10px 16px;cursor:pointer;border-right:1px solid var(--bdr);transition:all .15s}
 .qp:hover{color:var(--m);background:rgba(41,151,255,.06)}
@@ -238,6 +253,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
 .mrole{font-size:11px;font-weight:600;color:var(--mid);margin-bottom:7px}
 .mrole.a{color:var(--m)}
 .mbody{font-size:13px;line-height:1.65;color:var(--txt);white-space:pre-wrap;word-break:break-word}
+.mbody .md-h{font-weight:600;font-size:13px;color:var(--txt);margin:10px 0 4px}
+.mbody .md-ul{margin:6px 0;padding-left:20px;list-style:disc}
+.mbody .md-ul li{margin:2px 0}
+.mbody .md-code{font-family:var(--mono);font-size:11.5px;background:rgba(255,255,255,.07);border:1px solid var(--bdr);border-radius:4px;padding:1px 5px;color:var(--m)}
+.mbody .md-pre{font-family:var(--mono);font-size:11.5px;background:rgba(0,0,0,.35);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin:8px 0;overflow-x:auto;white-space:pre;line-height:1.5}
+.mbody .md-pre code{color:var(--txt);background:none;border:none;padding:0}
+.mbody strong{font-weight:600;color:var(--txt)}
+.mbody em{font-style:italic}
 .tev{display:flex;align-items:flex-start;gap:7px;padding:7px 20px;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px;color:var(--mid)}
 .tev .arr{flex-shrink:0;margin-top:1px}
 .tev.call .arr{color:var(--m)}.tev.res .arr{color:var(--g)}
@@ -288,6 +311,71 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
 .alert.err{background:rgba(255,69,58,.07);border-color:var(--r);color:var(--r)}
 .alert.info{background:rgba(41,151,255,.07);border-color:var(--m);color:var(--m)}
 .empty{padding:32px 20px;font-size:12px;color:var(--mid)}
+/* ─── EMPTY STATE ────────────────────────────────── */
+.estate{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:52px 28px;gap:14px}
+.estate-ic{width:54px;height:54px;display:flex;align-items:center;justify-content:center;border-radius:16px;
+  background:linear-gradient(160deg,rgba(41,151,255,.14),rgba(41,151,255,.04));border:1px solid var(--bdr2);
+  box-shadow:0 8px 28px -12px rgba(41,151,255,.45)}
+.estate-ic svg{width:26px;height:26px;stroke:var(--m);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.estate-t{font-size:14px;font-weight:600;color:var(--txt);letter-spacing:-.01em}
+.estate-s{font-size:12px;color:var(--mid);max-width:280px;line-height:1.55}
+.estate-act{margin-top:4px;font-size:11.5px;font-weight:600;color:var(--m);background:rgba(41,151,255,.10);
+  border:1px solid var(--bdr2);border-radius:8px;padding:7px 14px;cursor:pointer;transition:all .15s;font-family:var(--f)}
+.estate-act:hover{background:rgba(41,151,255,.18)}
+/* ─── TREND VERDICT BADGE ────────────────────────── */
+.verd2{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:34px 20px 28px;border-bottom:1px solid var(--bdr);overflow:hidden}
+.verd2-glow{position:absolute;top:-40%;left:50%;transform:translateX(-50%);width:340px;height:240px;
+  border-radius:50%;filter:blur(60px);opacity:.32;pointer-events:none;z-index:0}
+.verd2.i .verd2-glow{background:radial-gradient(circle,var(--g),transparent 70%)}
+.verd2.d .verd2-glow{background:radial-gradient(circle,var(--r),transparent 70%)}
+.verd2.x .verd2-glow{background:radial-gradient(circle,var(--a),transparent 70%);opacity:.26}
+.verd2.s .verd2-glow{background:radial-gradient(circle,var(--m),transparent 70%);opacity:.18}
+.verd2-badge{position:relative;z-index:1;display:flex;align-items:center;gap:10px;
+  padding:10px 20px;border-radius:999px;font-weight:700;font-size:13px;letter-spacing:.04em;
+  border:1px solid;backdrop-filter:blur(8px)}
+.verd2.i .verd2-badge{color:var(--g);border-color:rgba(50,215,75,.4);background:rgba(50,215,75,.10)}
+.verd2.d .verd2-badge{color:var(--r);border-color:rgba(255,69,58,.4);background:rgba(255,69,58,.10)}
+.verd2.x .verd2-badge{color:var(--a);border-color:rgba(255,214,10,.4);background:rgba(255,214,10,.10)}
+.verd2.s .verd2-badge{color:var(--mid);border-color:var(--bdr);background:rgba(255,255,255,.04)}
+.verd2-arrow{font-size:18px;line-height:1;display:inline-block}
+.verd2-head{position:relative;z-index:1;margin-top:16px;font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.verd2.i .verd2-head{color:var(--g)}.verd2.d .verd2-head{color:var(--r)}.verd2.x .verd2-head{color:var(--a)}.verd2.s .verd2-head{color:var(--txt)}
+.verd2-sub{position:relative;z-index:1;font-size:12px;color:var(--mid);margin-top:7px}
+/* ─── SETUP SCREEN ───────────────────────────────── */
+.setup-overlay{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);padding:24px;
+}
+.setup-box{
+  width:100%;max-width:440px;
+  display:flex;flex-direction:column;gap:0;
+}
+.setup-logo{
+  font-size:22px;font-weight:700;letter-spacing:-.03em;color:var(--txt);
+  margin-bottom:8px;
+}
+.setup-tagline{font-size:14px;color:var(--mid);margin-bottom:32px;line-height:1.5}
+.setup-fields{display:flex;flex-direction:column;gap:20px;margin-bottom:24px}
+.setup-field{display:flex;flex-direction:column;gap:6px}
+.setup-lbl{font-size:12px;font-weight:600;color:var(--txt)}
+.setup-in{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  color:var(--txt);font-family:var(--mono);font-size:13px;
+  padding:10px 12px;outline:none;border-radius:8px;
+  transition:border-color .15s;
+}
+.setup-in:focus{border-color:var(--m)}
+.setup-hint{font-size:11px;color:var(--dim)}
+.setup-err{
+  font-size:12px;color:var(--r);padding:10px 12px;
+  background:rgba(255,69,58,.07);border:1px solid rgba(255,69,58,.2);
+  border-radius:8px;margin-bottom:16px;
+}
+.setup-btn{width:100%;padding:12px;font-size:14px;border-radius:10px;margin-bottom:16px}
+.setup-footer{font-size:11px;color:var(--dim);text-align:center;line-height:1.5}
+
 .hidden{display:none!important}
 .p20{padding:0 20px}
 .p-hint{padding:0 20px 12px;font-size:11px;color:var(--mid)}
@@ -325,20 +413,41 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
   color:#fff;font-size:11px;font-weight:700;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;margin-top:1px;
 }
+/* ── Tablet / small laptop ── */
+@media (max-width:900px){
+  .panel{width:100%;max-width:480px}
+}
+/* ── Mobile ── */
 @media (max-width:768px){
-  .bar-logo{padding:0 14px;font-size:14px}
-  .bar-proj{padding:0 10px;gap:5px}
+  /* Header: free up room so the 3 nav tabs are always reachable. */
+  .bar-logo{padding:0 12px;font-size:13px}
+  .bar-proj{padding:0 9px;gap:5px}
   .proj-lbl{display:none}
-  .nav-btn{padding:0 12px;font-size:12px}
-  .panel{width:100%}
+  .proj-sel{max-width:80px;font-size:16px}
+  .bar-nav{margin-left:auto}
+  .nav-btn{padding:0 9px;font-size:12px}
+  .btn-info{margin:0 5px 0 3px;width:24px;height:24px}
+  .panel{width:100%;max-width:none}
   .hud{display:none}
   .p-ctrl{flex-wrap:wrap;gap:8px}
   .mstrip-item{padding:12px 14px}
   .mi-val{font-size:22px}
   .chat-ft{padding:10px 12px}
-  .cin{font-size:14px}
+  /* 16px on text inputs prevents iOS Safari auto-zoom on focus. */
+  .cin,.setup-in,.p-in,.ds-in{font-size:16px}
   .btn-m{padding:8px 16px}
   .btn-m,.btn-s{border-radius:10px}
+  .estate{padding:40px 22px}
+  .verd2-head{font-size:26px}
+  .modal-box,.setup-box{padding:22px}
+}
+/* ── Phones (≤440px): compact the brand so the 3 tabs never clip. ── */
+@media (max-width:440px){
+  .bar-logo{padding:0 10px;font-size:0;border-right:none}
+  .bar-logo::after{content:'AW';font-size:14px;font-weight:700;letter-spacing:-.02em}
+  .bar-proj{padding:0 8px;border-left:1px solid var(--bdr)}
+  .proj-sel{max-width:78px}
+  .nav-btn{padding:0 9px}
 }
 </style>
 </head>
@@ -366,6 +475,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
     <button class="nav-btn" data-tab="chat" data-i18n="tabChat">Chat</button>
   </div>
   <button class="btn-info" id="btnInfo">i</button>
+  <button class="btn-info" id="btnConnect" title="Connect your Phoenix account" style="margin-left:4px">⚙</button>
 </header>
 
 <!-- DATA PANEL -->
@@ -410,6 +520,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
           <div class="pill active" data-av="evals" data-i18n="evals">Evals</div>
           <div class="pill" data-av="trend" data-i18n="trend">Trend</div>
           <div class="pill" data-av="cost" data-i18n="cost">Cost</div>
+          <div class="pill" data-av="experiment">A/B</div>
         </div>
       </div>
       <div id="av-evals">
@@ -445,12 +556,31 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
           <input class="p-in" type="number" id="costLim" value="20" min="1" max="50">
           <button class="btn-m" id="btnCost" data-i18n="analyze">Analyze</button>
         </div>
-        <div class="p-hint">Gemini 2.5 Flash — $0.075/1M in · $0.30/1M out</div>
+        <div class="p-hint" id="costHint">—</div>
         <div class="mstrip hidden" id="costMstr">
           <div class="mstrip-item"><div class="mi-lbl" data-i18n="tokens">Tokens</div><div class="mi-val m" id="c-tok">—</div></div>
           <div class="mstrip-item"><div class="mi-lbl" data-i18n="estCost">Est. Cost</div><div class="mi-val m" id="c-cost">—</div><div class="mi-sub">USD</div></div>
         </div>
         <div class="p20" id="costBars" style="padding-top:12px"></div>
+      </div>
+      <div id="av-experiment" style="display:none">
+        <div class="p-ctrl" style="flex-direction:column;align-items:stretch;gap:10px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div class="pills" id="expEvalPills">
+              <div class="pill" data-v="hallucination">Hallu</div>
+              <div class="pill" data-v="relevance">Relev</div>
+              <div class="pill active" data-v="qa_correctness">QA</div>
+              <div class="pill" data-v="conciseness">Concise</div>
+            </div>
+            <span class="p-label">N</span>
+            <input class="p-in" type="number" id="expLim" value="1" min="1" max="5" style="width:54px">
+            <button class="btn-m" id="btnExp" style="margin-left:auto">Run A/B</button>
+          </div>
+          <textarea class="cin" id="expPrompt" rows="3" style="max-height:140px"
+            placeholder="Candidate prompt to test — e.g. 'Answer in at most 2 short sentences. Be direct, no preamble.'"></textarea>
+        </div>
+        <div class="p-hint">Runs your prompt against real production requests and judges old vs new on the same rubric. Each span = 3 Gemini calls.</div>
+        <div id="expOut"></div>
       </div>
     </div>
 
@@ -468,6 +598,34 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--f);
 
   </div><!-- /panel-body -->
 </div><!-- /panel -->
+
+<!-- SETUP SCREEN -->
+<div class="setup-overlay hidden" id="setupOverlay">
+  <div class="setup-box">
+    <div class="setup-logo">AgentWatch</div>
+    <div class="setup-tagline" data-i18n="setupTagline">Connect your Arize Phoenix workspace to get started</div>
+    <div class="setup-fields">
+      <div class="setup-field">
+        <label class="setup-lbl" data-i18n="setupKey">Phoenix API Key</label>
+        <input class="setup-in" id="setupKey" type="password" placeholder="px_live_...">
+        <span class="setup-hint" data-i18n="setupKeyHint">Get it at app.phoenix.arize.com → Settings → API Keys</span>
+      </div>
+      <div class="setup-field">
+        <label class="setup-lbl" data-i18n="setupEndpoint">Phoenix Space URL</label>
+        <input class="setup-in" id="setupEndpoint" type="text" placeholder="https://app.phoenix.arize.com/s/your-space">
+        <span class="setup-hint" data-i18n="setupEndpointHint">Settings → Copy Hostname (includes /s/your-space)</span>
+      </div>
+      <div class="setup-field">
+        <label class="setup-lbl" data-i18n="setupGoogleKey">Google API Key <span style="color:var(--mid);font-weight:400">(optional — needed for Chat)</span></label>
+        <input class="setup-in" id="setupGKey" type="password" placeholder="AIza...">
+        <span class="setup-hint" data-i18n="setupGKeyHint">Get it at aistudio.google.com/apikey</span>
+      </div>
+    </div>
+    <div id="setupErr" style="display:none" class="setup-err"></div>
+    <button class="btn-m setup-btn" id="btnSetup" data-i18n="setupConnect">Connect</button>
+    <div class="setup-footer" data-i18n="setupFooter">Keys are saved to your local .env file — never sent anywhere else.</div>
+  </div>
+</div>
 
 <!-- INFO MODAL -->
 <div class="modal-overlay hidden" id="infoModal">
@@ -741,6 +899,12 @@ const T={
     step3:'Use Chat to get an automatic diagnosis in plain language',
     panelTraces:'Traces',panelAnalysis:'Analysis',panelChat:'Chat',
     qDiagnose:'Diagnose failures',qEval:'Run evaluation',qTrend:'Check trend',qFull:'Full analysis',
+    setupTagline:'Connect your Arize Phoenix workspace to get started',
+    setupKey:'Phoenix API Key',setupKeyHint:'Get it at app.phoenix.arize.com → Settings → API Keys',
+    setupEndpoint:'Phoenix Space URL',setupEndpointHint:'Settings → Copy Hostname (includes /s/your-space)',
+    setupGoogleKey:'Google API Key',setupGKeyHint:'Get it at aistudio.google.com/apikey',
+    setupConnect:'Connect to Phoenix',
+    setupFooter:'Keys are saved to your local .env file — never sent anywhere else.',
   },
   es:{
     tabTraces:'Trazas',tabAnalysis:'Análisis',tabChat:'Chat',
@@ -758,6 +922,12 @@ const T={
     step3:'Usa el Chat para obtener un diagnóstico automático en lenguaje natural',
     panelTraces:'Trazas',panelAnalysis:'Análisis',panelChat:'Chat',
     qDiagnose:'Diagnosticar fallos',qEval:'Ejecutar evaluación',qTrend:'Ver tendencia',qFull:'Análisis completo',
+    setupTagline:'Conecta tu workspace de Arize Phoenix para comenzar',
+    setupKey:'API Key de Phoenix',setupKeyHint:'Encuéntrala en app.phoenix.arize.com → Settings → API Keys',
+    setupEndpoint:'URL de tu espacio Phoenix',setupEndpointHint:'Settings → Copia el Hostname (incluye /s/tu-espacio)',
+    setupGoogleKey:'Google API Key',setupGKeyHint:'Créala en aistudio.google.com/apikey',
+    setupConnect:'Conectar a Phoenix',
+    setupFooter:'Las keys se guardan en tu .env local — nunca se envían a ningún otro lugar.',
   }
 };
 function t(k){return(T[LANG]||T.en)[k]||k;}
@@ -778,6 +948,39 @@ const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const enc=s=>encodeURIComponent(s);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// Minimal, XSS-safe markdown for chat answers: escape first, then transform.
+function renderMd(raw){
+  const blocks=[];
+  let t=esc(raw);
+  t=t.replace(/```(?:[a-zA-Z0-9_-]*)\n?([\s\S]*?)```/g,(_,c)=>{
+    blocks.push(`<pre class="md-pre"><code>${c.replace(/\n+$/,'')}</code></pre>`);
+    return `@@CB${blocks.length-1}@@`;
+  });
+  t=t.replace(/`([^`\n]+)`/g,'<code class="md-code">$1</code>');
+  t=t.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
+  t=t.replace(/(^|[\s(])\*([^*\n]+)\*/g,'$1<em>$2</em>');
+  t=t.replace(/^\s*#{1,4}\s+(.+)$/gm,'<div class="md-h">$1</div>');
+  t=t.replace(/^[ \t]*[-*]\s+(.+)$/gm,'<li>$1</li>');
+  t=t.replace(/(?:<li>[\s\S]*?<\/li>\n?)+/g,m=>`<ul class="md-ul">${m.replace(/\n/g,'')}</ul>`);
+  t=t.replace(/\n/g,'<br>');
+  t=t.replace(/<br>(<ul|<pre|<div class="md-h")/g,'$1').replace(/(<\/ul>|<\/pre>|<\/div>)<br>/g,'$1');
+  t=t.replace(/(?:<br>)?@@CB(\d+)@@(?:<br>)?/g,(_,i)=>blocks[+i]);
+  return t;
+}
+const EICON={
+  traces:'<svg viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>',
+  cost:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5a2.5 2 0 0 1 5 0c0 1.4-1.2 1.8-2.5 2.2s-2.5.8-2.5 2.2a2.5 2 0 0 0 5 0"/></svg>',
+  evals:'<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+  trend:'<svg viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>'
+};
+function emptyState(kind,title,sub,actLabel,actId){
+  const act=actLabel?`<button class="estate-act" ${actId?`id="${actId}"`:''}>${esc(actLabel)}</button>`:'';
+  return `<div class="estate">
+    <div class="estate-ic">${EICON[kind]||EICON.traces}</div>
+    <div class="estate-t">${esc(title)}</div>
+    <div class="estate-s">${esc(sub)}</div>${act}</div>`;
+}
+function animEstate(sel){anime({targets:`${sel} .estate`,opacity:[0,1],translateY:[10,0],duration:420,easing:'easeOutExpo'});anime({targets:`${sel} .estate-ic`,scale:[.8,1],duration:520,easing:'easeOutBack'});}
 const fmt={
   ms:v=>v==null?'—':v>=1000?`${(v/1000).toFixed(1)}s`:`${Math.round(v)}ms`,
   tok:v=>v==null?'—':v>=1000?`${(v/1000).toFixed(1)}k`:`${v}`,
@@ -791,7 +994,12 @@ function numUp(el,to,dec=0){
 }
 async function api(path,opts={}){
   const r=await fetch('/api'+path,{headers:{'Content-Type':'application/json'},...opts});
-  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  if(!r.ok){
+    // Surface the backend's friendly message (error/detail) instead of a bare code.
+    let msg=`HTTP ${r.status}`;
+    try{const e=await r.json();if(e&&(e.error||e.detail))msg=e.error||e.detail;}catch{}
+    throw new Error(msg);
+  }
   return r.json();
 }
 function setBtn(btn,on){btn.disabled=on;on?btn.classList.add('loading'):btn.classList.remove('loading');}
@@ -825,6 +1033,9 @@ $('#btnInfo').addEventListener('click',()=>$('#infoModal').classList.remove('hid
 $('#closeInfo').addEventListener('click',()=>$('#infoModal').classList.add('hidden'));
 $('#infoModal').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.add('hidden');});
 
+// ── CONNECT BUTTON (always visible, lets users swap Phoenix account) ──
+$('#btnConnect').addEventListener('click',()=>$('#setupOverlay').classList.remove('hidden'));
+
 // ── PROJECTS ──
 async function loadProjects(){
   try{
@@ -834,10 +1045,24 @@ async function loadProjects(){
     G.project=sel.value;
     $('#hud-proj').textContent=G.project;
     refreshDs();refreshQrow();
+    // First impression: open Traces and auto-load so judges see real data
+    // immediately instead of an empty galaxy + header. Only on first load.
+    if(G.project && !G.bootstrapped){
+      G.bootstrapped=true;
+      openPanel('traces');
+      $('#btnTraces').click();
+    }
   }catch(e){console.error(e);}
 }
-$('#projSel').addEventListener('change',e=>{G.project=e.target.value;$('#hud-proj').textContent=G.project;refreshDs();refreshQrow();});
+$('#projSel').addEventListener('change',e=>{G.project=e.target.value;$('#hud-proj').textContent=G.project;refreshDs();refreshQrow();resetViews();});
 function refreshDs(){const i=$('#dsName');if(i)i.value=`failures-${G.project}`;}
+// Clear stale data when switching projects so one project's traces/cost/evals
+// never linger on screen while showing another project's name in the header.
+function resetViews(){
+  ['#tracesTable','#evalOut','#trendOut','#costBars','#dsRes'].forEach(s=>{const el=$(s);if(el)el.innerHTML='';});
+  ['#tracesMstr','#costMstr','#dsArea'].forEach(s=>{const el=$(s);if(el){el.classList.add('hidden');el.style.display='';}});
+  ['#hud-n','#hud-err','#hud-lat'].forEach(s=>{const el=$(s);if(el)el.textContent='—';});
+}
 
 // ── TRACES (unified recent + failed) ──
 $$('#traceModePills .pill').forEach(p=>p.addEventListener('click',()=>{
@@ -889,13 +1114,17 @@ function updateHud(traces,stats){
 $$('#analysisPills .pill').forEach(p=>p.addEventListener('click',()=>{
   $$('#analysisPills .pill').forEach(x=>x.classList.remove('active'));
   p.classList.add('active');G.analysisView=p.dataset.av;
-  ['evals','trend','cost'].forEach(v=>$(`#av-${v}`).style.display=v===p.dataset.av?'block':'none');
+  ['evals','trend','cost','experiment'].forEach(v=>$(`#av-${v}`).style.display=v===p.dataset.av?'block':'none');
 }));
 
 // ── TABLE ──
 function renderTable(sel,traces){
   const c=$(sel);
-  if(!traces.length){c.innerHTML='<div class="empty">No traces found.</div>';return;}
+  if(!traces.length){
+    c.innerHTML=emptyState('traces',
+      LANG==='es'?'Sin trazas todavía':'No traces yet',
+      LANG==='es'?'Este proyecto aún no tiene trazas en Phoenix, o no hay ninguna en el rango seleccionado.':'This project has no traces in Phoenix yet, or none in the selected range.');
+    animEstate(sel);return;}
   const maxL=Math.max(...traces.map(t=>t.latency_ms||0),1);
   let h=`<table class="tbl"><thead><tr>
     <th>St</th><th>Trace ID</th><th>Latency</th><th>LLM</th><th>Tools</th>
@@ -992,6 +1221,11 @@ $('#btnEval').addEventListener('click',async()=>{
 });
 function renderEvals(d){
   const avg=d.avg_score,dist=d.label_distribution||{},spans=d.per_span_results||[],ann=d.annotation_status||{};
+  if(!spans.length){
+    $('#evalOut').innerHTML=emptyState('evals',
+      LANG==='es'?'Sin resultados de eval':'No eval results',
+      LANG==='es'?'No se encontraron spans LLM para evaluar en este proyecto.':'No LLM spans were found to evaluate in this project.');
+    animEstate('#evalOut');return;}
   const GOOD=['factual','relevant','correct','concise'];
   const tot=Object.values(dist).reduce((a,b)=>a+b,0)||1;
   let h=`<div class="em-grid">
@@ -1035,17 +1269,35 @@ $('#btnTrend').addEventListener('click',async()=>{
   finally{setBtn(btn,false);}
 });
 function renderTrend(d,wh){
-  const v=d.verdict||'STABLE';const isI=v.includes('IMPROVED'),isD=v.includes('DEGRADED');
-  const vc=isI?'i':isD?'d':'s';
+  const v=d.verdict||'STABLE';
+  const isI=v.includes('IMPROVED'),isD=v.includes('DEGRADED'),isM=v.includes('MIXED'),isND=v.includes('NO DATA');
+  const vc=isI?'i':isD?'d':isM?'x':'s';
   const wa=d.window_a_recent||{},wb=d.window_b_baseline||{},dl=d.delta||{};
+  const latDeltaTxt=dl.avg_latency_ms!=null
+    ?`${dl.avg_latency_ms.toFixed(0)}ms${dl.avg_latency_pct!=null?` (${dl.avg_latency_pct>0?'+':''}${dl.avg_latency_pct}%)`:''}`
+    :null;
   const rows=[
     ['Error Rate',fmt.pct(wa.error_rate),fmt.pct(wb.error_rate),dl.error_rate,true],
-    ['Avg Latency',fmt.ms(wa.avg_latency_ms),fmt.ms(wb.avg_latency_ms),dl.avg_latency_ms!=null?dl.avg_latency_ms.toFixed(0)+'ms':null,true],
+    ['Avg Latency',fmt.ms(wa.avg_latency_ms),fmt.ms(wb.avg_latency_ms),latDeltaTxt,true],
     ['p95 Latency',fmt.ms(wa.p95_latency_ms),fmt.ms(wb.p95_latency_ms),dl.p95_latency_ms!=null?dl.p95_latency_ms.toFixed(0)+'ms':null,true],
     ['Traces',wa.count,wb.count,null,false],
   ];
-  let h=`<div class="verd"><div class="verd-big ${vc}">${v.replace(/[^\w\s]/g,'').trim()}</div>
-    <div class="verd-sub">${wh}h recent vs ${wh}h baseline</div></div>
+  const verdTxt=isND?(LANG==='es'?'SIN DATOS':'NO DATA'):v.replace(/[^\w\s]/g,'').trim();
+  const arr=isI?'↑':isD?'↓':isM?'↔':'→';
+  const badge=isND?(LANG==='es'?'SIN DATOS':'NO DATA')
+    :isI?(LANG==='es'?'MEJORANDO':'IMPROVING')
+    :isD?(LANG==='es'?'EMPEORANDO':'DEGRADING')
+    :isM?(LANG==='es'?'MIXTO':'MIXED')
+    :(LANG==='es'?'ESTABLE':'STABLE');
+  const subTxt=isND
+    ?(LANG==='es'?`sin trazas en ambas ventanas de ${wh}h`:`no traces in both ${wh}h windows`)
+    :(LANG==='es'?`últimas ${wh}h vs ${wh}h previas`:`last ${wh}h vs prior ${wh}h`);
+  let h=`<div class="verd2 ${vc}">
+    <div class="verd2-glow"></div>
+    <div class="verd2-badge"><span class="verd2-arrow">${arr}</span>${badge}</div>
+    <div class="verd2-head">${verdTxt}</div>
+    <div class="verd2-sub">${subTxt}</div>
+  </div>
   <div class="tcol"><div class="tc-hd">Recent / Baseline</div>
     ${rows.map(([n,a,b])=>`<div class="trow"><span>${n}</span><span>${a??'—'} / ${b??'—'}</span></div>`).join('')}
   </div>
@@ -1060,7 +1312,10 @@ function renderTrend(d,wh){
   });
   h+=`</tbody></table></div>`;
   $('#trendOut').innerHTML=h;
-  anime({targets:'.verd',opacity:[0,1],translateY:[-6,0],duration:500,easing:'easeOutExpo'});
+  anime({targets:'.verd2-badge',scale:[.85,1],opacity:[0,1],duration:520,easing:'easeOutBack'});
+  anime({targets:'.verd2-head',opacity:[0,1],translateY:[10,0],duration:560,delay:120,easing:'easeOutExpo'});
+  anime({targets:'.verd2-sub',opacity:[0,1],duration:500,delay:240,easing:'easeOutQuad'});
+  anime({targets:'.verd2-glow',scale:[.6,1],opacity:[0,vc==='s'?.18:.32],duration:900,easing:'easeOutExpo'});
 }
 
 // ── COST ──
@@ -1075,16 +1330,22 @@ $('#btnCost').addEventListener('click',async()=>{
     anime({targets:'#costMstr .mstrip-item',opacity:[0,1],translateY:[8,0],delay:anime.stagger(80),duration:400,easing:'easeOutExpo'});
     numUp($('#c-tok'),agg.total_tokens);
     $('#c-cost').textContent=fmt.usd(agg.estimated_cost_usd);
+    if(agg.pricing_note)$('#costHint').textContent=agg.pricing_note;
     renderCost(d.per_trace||[]);
   }catch(e){showAlert('#costBars','err','Failed: '+e.message);}
   finally{setBtn(btn,false);}
 });
 function renderCost(rows){
-  const sorted=[...rows].sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,12);
-  const maxC=Math.max(...sorted.map(r=>(r.prompt||0)*.075/1e6+(r.completion||0)*.30/1e6),.0000001);
+  if(!rows.length){
+    $('#costBars').innerHTML=emptyState('cost',
+      LANG==='es'?'Sin datos de tokens':'No token data',
+      LANG==='es'?'No se encontraron trazas con uso de tokens para analizar el costo.':'No traces with token usage were found to analyze cost.');
+    animEstate('#costBars');return;}
+  const sorted=[...rows].sort((a,b)=>(b.cost_usd||0)-(a.cost_usd||0)).slice(0,12);
+  const maxC=Math.max(...sorted.map(r=>r.cost_usd||0),.0000001);
   let h='';
   sorted.forEach(r=>{
-    const cost=(r.prompt||0)*.075/1e6+(r.completion||0)*.30/1e6;
+    const cost=r.cost_usd||0;
     const pct=(cost/maxC*100).toFixed(1);
     h+=`<div class="crow"><div class="cid">${r.trace_id?r.trace_id.slice(0,10)+'…':'?'}</div>
       <div class="ctrack"><div class="cfill" data-w="${pct}"></div></div>
@@ -1094,6 +1355,70 @@ function renderCost(rows){
   });
   $('#costBars').innerHTML=h;
   setTimeout(()=>$$('.cfill').forEach(el=>anime({targets:el,width:el.dataset.w+'%',duration:800,easing:'easeOutExpo'})),80);
+}
+
+// ── A/B PROMPT EXPERIMENT (closes the self-improvement loop) ──
+G.expEval='qa_correctness';
+$$('#expEvalPills .pill').forEach(p=>p.addEventListener('click',()=>{
+  $$('#expEvalPills .pill').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active');G.expEval=p.dataset.v;
+}));
+$('#btnExp').addEventListener('click',async()=>{
+  if(!G.project)return;
+  const prompt=$('#expPrompt').value.trim();
+  if(!prompt){showAlert('#expOut','info',LANG==='es'?'Escribe un prompt candidato para probar.':'Write a candidate prompt to test.');return;}
+  const btn=$('#btnExp');const lim=parseInt($('#expLim').value)||1;
+  setBtn(btn,true);
+  $('#expOut').innerHTML=`<div style="padding:16px 20px;display:flex;gap:8px;align-items:center;font-size:11px;color:var(--mid)"><div class="sp"></div>${LANG==='es'?'Ejecutando A/B contra producción…':'Running A/B against production…'}</div>`;
+  try{
+    const d=await api(`/projects/${enc(G.project)}/experiment`,{method:'POST',body:JSON.stringify({candidate_instruction:prompt,eval_type:G.expEval,limit:lim})});
+    if(d.error){$('#expOut').innerHTML=`<div class="alert err" style="margin:12px">${esc(d.error)}</div>`;return;}
+    renderExperiment(d);
+  }catch(e){$('#expOut').innerHTML=`<div class="alert err" style="margin:12px">Failed: ${esc(e.message)}</div>`;}
+  finally{setBtn(btn,false);}
+});
+function renderExperiment(d){
+  const v=d.verdict||'';
+  const isW=v.includes('BETTER'),isL=v.includes('WORSE'),isInc=v.includes('INCONCLUSIVE');
+  const vc=isW?'i':isL?'d':isInc?'s':'x';
+  const arr=isW?'↑':isL?'↓':'→';
+  const badge=isW?(LANG==='es'?'CANDIDATO MEJOR':'CANDIDATE BETTER')
+    :isL?(LANG==='es'?'CANDIDATO PEOR':'CANDIDATE WORSE')
+    :isInc?(LANG==='es'?'SIN CONCLUSIÓN':'INCONCLUSIVE')
+    :(LANG==='es'?'EMPATE':'TIE');
+  const b=d.avg_baseline_score,c=d.avg_candidate_score;
+  const pc=x=>x==null?0:Math.max(0,Math.min(100,x*100));
+  let h=`<div class="verd2 ${vc}" style="padding-top:28px">
+    <div class="verd2-glow"></div>
+    <div class="verd2-badge"><span class="verd2-arrow">${arr}</span>${badge}</div>
+    <div class="verd2-head" style="font-size:24px">${d.avg_delta!=null?(d.avg_delta>0?'+':'')+d.avg_delta.toFixed(2):'—'}</div>
+    <div class="verd2-sub">${d.wins}W · ${d.losses}L · ${d.ties}T ${LANG==='es'?'· puntuado sobre':'· scored on'} ${esc(d.eval_type||'')}</div>
+  </div>
+  <div class="abcmp">
+    <div class="abrow"><div class="ablbl">${LANG==='es'?'Producción':'Baseline'}</div>
+      <div class="abtrack"><div class="abfill base" data-w="${pc(b)}"></div></div>
+      <div class="abval">${b!=null?b.toFixed(2):'—'}</div></div>
+    <div class="abrow"><div class="ablbl">${LANG==='es'?'Candidato':'Candidate'}</div>
+      <div class="abtrack"><div class="abfill cand" data-w="${pc(c)}"></div></div>
+      <div class="abval">${c!=null?c.toFixed(2):'—'}</div></div>
+  </div>
+  <div class="tcol"><div class="tc-hd">${LANG==='es'?'Por solicitud':'Per request'}</div>`;
+  (d.per_span||[]).forEach(r=>{
+    const dl=r.delta;const dc=dl==null?'ds':dl>0.05?'di':dl<-0.05?'dd':'ds';
+    const dtxt=dl==null?'—':(dl>0?'+':'')+dl.toFixed(2);
+    h+=`<div class="abspan">
+      <div class="abspan-q">${esc(r.question_preview||'—')}</div>
+      <div class="abspan-sc"><span>${r.baseline_score!=null?r.baseline_score.toFixed(2):'—'} → ${r.candidate_score!=null?r.candidate_score.toFixed(2):'—'}</span><span class="${dc}">${dtxt}</span></div>
+      ${r.candidate_output_preview?`<div class="abspan-out">${esc(r.candidate_output_preview)}</div>`:''}
+    </div>`;
+  });
+  h+=`</div>`;
+  $('#expOut').innerHTML=h;
+  anime({targets:'#expOut .verd2-badge',scale:[.85,1],opacity:[0,1],duration:520,easing:'easeOutBack'});
+  anime({targets:'#expOut .verd2-head',opacity:[0,1],translateY:[10,0],duration:560,delay:120,easing:'easeOutExpo'});
+  anime({targets:'#expOut .verd2-glow',scale:[.6,1],opacity:[0,vc==='s'?.18:.30],duration:900,easing:'easeOutExpo'});
+  setTimeout(()=>$$('#expOut .abfill').forEach(el=>anime({targets:el,width:el.dataset.w+'%',duration:850,easing:'easeOutExpo'})),120);
+  anime({targets:'#expOut .abspan',opacity:[0,1],translateY:[8,0],delay:anime.stagger(60,{start:200}),duration:380,easing:'easeOutExpo'});
 }
 
 // ── CHAT ──
@@ -1143,12 +1468,15 @@ async function sendMsg(text){
   bubble.innerHTML='<div class="sp"></div>';
   let full='',hadError=false;
   const toolCalls=[],toolResults=[];
+  const ac=new AbortController();
+  let idle=setTimeout(()=>ac.abort(),100000); // abort if no data for 100s
   try{
-    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,session_id:G.sessionId})});
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,session_id:G.sessionId}),signal:ac.signal});
     if(!r.ok)throw new Error(`HTTP ${r.status}`);
     const reader=r.body.getReader();const dec=new TextDecoder();let buf='';
     while(true){
       const {done,value}=await reader.read();if(done)break;
+      clearTimeout(idle);idle=setTimeout(()=>ac.abort(),100000); // reset on each chunk
       buf+=dec.decode(value,{stream:true});
       const lines=buf.split('\n');buf=lines.pop();
       for(const ln of lines){
@@ -1158,7 +1486,7 @@ async function sendMsg(text){
           if(ev.type==='session')G.sessionId=ev.session_id;
           else if(ev.type==='text'){
             full+=ev.content;
-            bubble.innerHTML=esc(full).replace(/\n/g,'<br>');scroll();
+            bubble.innerHTML=renderMd(full);scroll();
           }else if(ev.type==='tool_call'){
             toolCalls.push(ev.name);
             addTool('call',ev.name,JSON.stringify(ev.args));
@@ -1168,7 +1496,7 @@ async function sendMsg(text){
             addTool('res',ev.name,ev.preview);
             if(!full)bubble.innerHTML=`<span style="color:var(--mid)">Reading ${esc(ev.name)} results...</span>`;
           }else if(ev.type==='done'){
-            bubble.innerHTML=full?esc(full).replace(/\n/g,'<br>'):toolOnlyHtml(toolCalls,toolResults);
+            bubble.innerHTML=full?renderMd(full):toolOnlyHtml(toolCalls,toolResults);
           }else if(ev.type==='error'){
             hadError=true;
             bubble.innerHTML=`<span style="color:var(--r)">${esc(ev.message)}</span>`;
@@ -1176,19 +1504,54 @@ async function sendMsg(text){
         }catch{}
       }
     }
-    if(full)bubble.innerHTML=esc(full).replace(/\n/g,'<br>');
+    if(full)bubble.innerHTML=renderMd(full);
     else if(!hadError)bubble.innerHTML=toolOnlyHtml(toolCalls,toolResults);
-  }catch(e){bubble.innerHTML=`<span style="color:var(--r)">Error: ${esc(e.message)}</span>`;}
-  finally{setBtn(btn,false);scroll();}
+  }catch(e){
+    if(e.name==='AbortError'){
+      const msg=LANG==='es'?'La respuesta tardó demasiado. El servidor puede estar despertando (free tier) — intenta de nuevo.':'The response took too long. The server may be waking up (free tier) — please try again.';
+      bubble.innerHTML=`<span style="color:var(--mid)">${msg}</span>`;
+    }else{
+      bubble.innerHTML=`<span style="color:var(--r)">Error: ${esc(e.message)}</span>`;
+    }
+  }
+  finally{clearTimeout(idle);setBtn(btn,false);scroll();}
 }
 $('#btnSend').addEventListener('click',()=>sendMsg($('#chatIn').value));
 $('#chatIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(e.target.value);}});
 function autoH(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
 $('#chatIn').addEventListener('input',e=>autoH(e.target));
 
+// ── SETUP ──
+$('#btnSetup').addEventListener('click', async () => {
+  const key = $('#setupKey').value.trim();
+  const endpoint = $('#setupEndpoint').value.trim();
+  const gkey = $('#setupGKey').value.trim();
+  const err = $('#setupErr');
+  err.style.display = 'none';
+  if (!key || !endpoint) { err.textContent = LANG==='es' ? 'La API Key y la URL son obligatorias.' : 'API Key and URL are required.'; err.style.display='block'; return; }
+  const btn = $('#btnSetup'); setBtn(btn, true);
+  try {
+    const r = await fetch('/api/setup', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ phoenix_api_key: key, phoenix_endpoint: endpoint, google_api_key: gkey||null }) });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.detail || 'Error connecting.'; err.style.display='block'; return; }
+    $('#setupOverlay').classList.add('hidden');
+    loadProjects();
+  } catch(e) { err.textContent = e.message; err.style.display='block'; }
+  finally { setBtn(btn, false); }
+});
+
 // INIT
 applyI18n();
-loadProjects();
+fetch('/api/setup/status').then(r=>r.json()).then(d=>{
+  if (d.pricing_note) $('#costHint').textContent = d.pricing_note;
+  if (!d.configured) {
+    $('#setupOverlay').classList.remove('hidden');
+    applyI18n(); // apply i18n to setup screen too
+  } else {
+    loadProjects();
+  }
+}).catch(()=>loadProjects());
 </script>
 </body>
 </html>

@@ -12,3 +12,7 @@ dist/
 
 .adk/
 agent/**/.adk/
+
+# Local tool configs (may contain API keys)
+.gemini/
+.claude/

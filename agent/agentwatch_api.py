@@ -26,6 +26,17 @@ if str(_root) not in sys.path:
 from dotenv import load_dotenv
 load_dotenv(_root.parent / ".env")
 
+# Vertex AI on cloud platforms: write service account JSON from env var to temp file.
+# Must run at import time, before any Google SDK is initialized.
+import tempfile as _tempfile
+_gac_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON", "")
+if _gac_json and not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+    _tmp = _tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+    _tmp.write(_gac_json)
+    _tmp.close()
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = _tmp.name
+
+import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -42,12 +53,84 @@ from agentwatch_core.phoenix_evals import (
     compare_time_windows,
     create_failure_dataset,
     run_llm_evals,
+    run_prompt_experiment,
 )
 
 app = FastAPI(title="AgentWatch", docs_url=None, redoc_url=None)
 
 # ── In-memory chat sessions ──────────────────────────────────────────────────
 _sessions: dict = {}
+_MAX_SESSIONS = 50  # cap so the free-tier instance can't OOM on accumulated runners
+
+_env_path = _root.parent / ".env"
+
+
+def _is_configured() -> bool:
+    return bool(os.environ.get("PHOENIX_API_KEY", "").strip())
+
+
+# ── Setup endpoints ───────────────────────────────────────────────────────────
+
+@app.get("/api/setup/status")
+def api_setup_status():
+    from agentwatch_core.pricing import current_model, pricing_note
+    return {
+        "configured": _is_configured(),
+        "model": current_model(),
+        "pricing_note": pricing_note(),
+    }
+
+
+class SetupRequest(BaseModel):
+    phoenix_api_key: str
+    phoenix_endpoint: str
+    google_api_key: Optional[str] = None
+
+
+@app.post("/api/setup")
+async def api_setup(req: SetupRequest):
+    """Save credentials to .env and validate Phoenix connection."""
+    # Validate Phoenix key first
+    endpoint = req.phoenix_endpoint.rstrip("/").replace("/v1/traces", "")
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as c:
+            r = await c.get(
+                f"{endpoint}/v1/projects",
+                headers={"Authorization": f"Bearer {req.phoenix_api_key}"},
+            )
+        if r.status_code not in (200, 201):
+            raise HTTPException(400, f"Phoenix rejected the key (HTTP {r.status_code}). Check your API key and endpoint.")
+    except httpx.RequestError as e:
+        raise HTTPException(400, f"Could not reach Phoenix: {e}")
+
+    # Write / update .env (local only — on cloud platforms env vars come from dashboard)
+    _is_cloud = bool(os.environ.get("RENDER") or os.environ.get("RAILWAY_ENVIRONMENT"))
+    if not _is_cloud:
+        lines: list[str] = []
+        if _env_path.exists():
+            lines = _env_path.read_text(encoding="utf-8").splitlines()
+
+        def _set(key: str, val: str):
+            for i, ln in enumerate(lines):
+                if ln.startswith(f"{key}=") or ln.startswith(f"# {key}="):
+                    lines[i] = f"{key}={val}"
+                    return
+            lines.append(f"{key}={val}")
+
+        _set("PHOENIX_API_KEY", req.phoenix_api_key)
+        _set("PHOENIX_COLLECTOR_ENDPOINT", req.phoenix_endpoint)
+        if req.google_api_key:
+            _set("GOOGLE_API_KEY", req.google_api_key)
+
+        _env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    # Reload env in-process (works on both local and cloud)
+    os.environ["PHOENIX_API_KEY"] = req.phoenix_api_key
+    os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = req.phoenix_endpoint
+    if req.google_api_key:
+        os.environ["GOOGLE_API_KEY"] = req.google_api_key
+
+    return {"ok": True, "message": "Connected to Phoenix successfully."}
 
 
 # ── Static files ─────────────────────────────────────────────────────────────
@@ -56,6 +139,35 @@ _static = _root / "static"
 @app.get("/", response_class=HTMLResponse)
 def index():
     return (_static / "index.html").read_text(encoding="utf-8")
+
+
+# ── Phoenix error handling ────────────────────────────────────────────────────
+# Phoenix REST helpers call raise_for_status(), so an expired key or a Phoenix
+# outage would otherwise surface to the user as a bare "HTTP 500". Translate the
+# common cases into a clear message the frontend can show verbatim.
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+
+@app.exception_handler(httpx.HTTPStatusError)
+async def _phoenix_http_error(request: Request, exc: httpx.HTTPStatusError):
+    code = exc.response.status_code
+    if code in (401, 403):
+        msg = ("Phoenix rejected the request — your API key may be invalid or "
+               "expired. Reconnect with the ⚙ button.")
+    elif code == 404:
+        msg = "Not found in Phoenix. Check the project name."
+    else:
+        msg = f"Phoenix returned HTTP {code}."
+    return JSONResponse(status_code=502, content={"error": msg, "phoenix_status": code})
+
+
+@app.exception_handler(httpx.RequestError)
+async def _phoenix_conn_error(request: Request, exc: httpx.RequestError):
+    return JSONResponse(
+        status_code=502,
+        content={"error": "Could not reach Phoenix. Check the endpoint URL or your network."},
+    )
 
 
 # ── API endpoints ─────────────────────────────────────────────────────────────
@@ -92,12 +204,41 @@ def api_trace(trace_id: str, project: str = "agentwatch"):
 
 class EvalRequest(BaseModel):
     eval_type: str = "hallucination"
-    limit: int = 5
+    limit: int = 3
 
 
 @app.post("/api/projects/{project_name}/evals")
-def api_evals(project_name: str, req: EvalRequest):
-    return run_llm_evals(project_name, eval_type=req.eval_type, limit=req.limit)
+async def api_evals(project_name: str, req: EvalRequest):
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(run_llm_evals, project_name, eval_type=req.eval_type, limit=req.limit),
+            timeout=55.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(408, "Evals timed out — reduce N and retry.")
+
+
+class ExperimentRequest(BaseModel):
+    candidate_instruction: str
+    eval_type: str = "qa_correctness"
+    limit: int = 1
+
+
+@app.post("/api/projects/{project_name}/experiment")
+async def api_experiment(project_name: str, req: ExperimentRequest):
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(
+                run_prompt_experiment,
+                project_name,
+                candidate_instruction=req.candidate_instruction,
+                eval_type=req.eval_type,
+                limit=req.limit,
+            ),
+            timeout=55.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(408, "A/B experiment timed out — reduce N to 1 and retry.")
 
 
 class DatasetRequest(BaseModel):
@@ -127,6 +268,12 @@ async def api_chat(req: ChatRequest):
     session_id = req.session_id or secrets.token_hex(8)
 
     if session_id not in _sessions:
+        # Bound the in-memory session store. Each session keeps an InMemoryRunner
+        # alive; on a 512MB free tier with multiple judges trying the demo these
+        # would accumulate until OOM. Evict the oldest once we pass the cap (dicts
+        # preserve insertion order, so the first key is the least-recently-created).
+        while len(_sessions) >= _MAX_SESSIONS:
+            _sessions.pop(next(iter(_sessions)), None)
         app_name = "agentwatch_web"
         runner = InMemoryRunner(agent=root_agent, app_name=app_name)
         await runner.session_service.create_session(

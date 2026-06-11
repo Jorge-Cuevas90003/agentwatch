@@ -18,6 +18,8 @@ from urllib.parse import quote
 
 import httpx
 
+from agentwatch_core.pricing import current_model, pricing_for, pricing_note
+
 
 def _phoenix_base_url() -> str:
     """Phoenix Cloud base URL (workspace root, no /v1/traces suffix)."""
@@ -367,10 +369,15 @@ def get_token_usage_stats(
     total_completion = sum(r["completion"] for r in rows)
     total_all = sum(r["total"] for r in rows)
 
-    # Cost estimation — Gemini 2.5 Flash on-demand (non-thinking, May 2026)
-    # $0.075 / 1M input tokens, $0.30 / 1M output tokens
-    _price_in = 0.075 / 1_000_000
-    _price_out = 0.30 / 1_000_000
+    # Cost estimation — priced for the configured Gemini model (see pricing.py).
+    _pin, _pout = pricing_for()
+    _price_in = _pin / 1_000_000
+    _price_out = _pout / 1_000_000
+    # Per-trace cost so the UI bars use the same pricing as the aggregate.
+    for r in rows:
+        r["cost_usd"] = round(
+            r["prompt"] * _price_in + r["completion"] * _price_out, 6
+        )
     estimated_cost_usd = round(
         total_prompt * _price_in + total_completion * _price_out, 6
     )
@@ -388,7 +395,8 @@ def get_token_usage_stats(
             "avg_tokens_per_trace": round(total_all / len(rows), 0) if rows else 0,
             "estimated_cost_usd": estimated_cost_usd,
             "avg_cost_per_trace_usd": cost_per_trace,
-            "pricing_note": "Gemini 2.5 Flash non-thinking: $0.075/1M input, $0.30/1M output",
+            "model": current_model(),
+            "pricing_note": pricing_note(),
         },
         "per_trace": rows,
     }

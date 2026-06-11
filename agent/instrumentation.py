@@ -36,6 +36,7 @@ def setup_tracing() -> Optional[Any]:
     global _provider
     if _provider is not None:
         return _provider
+
     if not (os.environ.get("PHOENIX_API_KEY") or "").strip():
         return None
     _provider = register(
