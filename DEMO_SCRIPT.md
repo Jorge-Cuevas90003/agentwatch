@@ -13,10 +13,10 @@ luego el dashboard vacío con el fondo de partículas.
 
 **Acción OBS:** Empieza a grabar justo antes de recargar. Deja correr la intro (~2s).
 
-**Narración (≈30 palabras):**
+**Narración (≈36 palabras):**
 > "AI agents fail silently in production. They get slower, hallucinate, and burn tokens —
 > and you find out from your users. This is AgentWatch: a reliability engineer for your agents,
-> powered by Google Gemini and Arize Phoenix."
+> built with Google ADK and Gemini, integrated with Arize Phoenix for full observability."
 
 ---
 
@@ -28,8 +28,8 @@ y mostrar los spans (LLM, tool calls, excepciones).
 
 **Acción OBS:** Click Traces → Load → esperar a que carguen → click en una fila para expandir.
 
-**Narración (≈50 palabras):**
-> "It connects to your Phoenix workspace and pulls every trace. Latency, errors, token counts —
+**Narración (≈52 palabras):**
+> "It connects to Arize Phoenix — via MCP — and pulls every trace. Latency, errors, token counts —
 > all in one place. Click any trace to drill into its spans: the LLM calls, the tool calls,
 > the exact exception that broke it. No more guessing why an agent failed."
 
@@ -85,32 +85,32 @@ Run A/B → esperar el resultado. **Este es el clímax — déjalo respirar.**
 
 ---
 
-## ESCENA 6 — Chat Agent · `2:12 – 2:34` (22s)
+## ESCENA 6 — Chat Agent · `2:12 – 2:42` (30s)
 
-**Pantalla:** Click **Chat**. Click un quick-prompt (p.ej. *"Diagnose failures"*) o escribir:
-*"Why is my agent slow? Root cause and fix."* Se ve al agente llamar tools en vivo
-(tool_call → tool_result) y responder en markdown.
+**Pantalla:** El agente envía automáticamente *"Why is my agent failing? Root cause and concrete fix — cite trace IDs from Phoenix."*
+Se ven las **tool calls en vivo**: `get_failure_traces` → `run_llm_evals` → respuesta en markdown con IDs de trazas reales.
 
-**Acción OBS:** Click Chat → click un quick-prompt → mostrar las tool calls apareciendo.
+**Acción OBS:** Solo observar — el director envía el mensaje y transmite las tool calls en tiempo real. **Esto muestra la integración MCP con Arize Phoenix.**
 
-**Narración (≈48 palabras):**
-> "All of it is also one conversation away. Ask in plain English — 'why is my agent slow?' —
-> and the agent pulls the traces, finds the root cause, runs the evals, and hands you a fix,
-> citing the exact trace IDs. It does the reliability work for you."
+**Narración (≈55 palabras):**
+> "All of it is also one conversation away. Ask in plain English — 'why is my agent failing?' —
+> and the agent calls Arize Phoenix directly: pulls the traces, fetches the spans, runs the evals,
+> and hands you a root cause with concrete fix — citing the exact trace IDs.
+> It does the reliability work for you."
 
 ---
 
-## ESCENA 7 — Cierre · `2:34 – 2:48` (14s)
+## ESCENA 7 — Cierre · `2:42 – 2:55` (13s)
 
 **Pantalla:** Volver a una vista limpia (Traces cargado o el badge del A/B). Opcional: mostrar
 la URL en vivo o el logo. Fade out suave.
 
 **Acción OBS:** Vista final estática. Deja 2-3s de aire al final para el fade.
 
-**Narración (≈32 palabras):**
+**Narración (≈34 palabras):**
 > "AgentWatch — observe, evaluate, and improve your AI agents, with proof.
-> Built on Google Gemini and Arize Phoenix. It's live, it's open source, and it's
-> ready to make your agents reliable."
+> Built with Google ADK, powered by Gemini, integrated with Arize Phoenix.
+> It's live, it's open source, and it closes the loop automatically."
 
 ---
 
@@ -123,10 +123,10 @@ la URL en vivo o el logo. Fade out suave.
 | 3 | Evals | 0:34 | 0:56 | 22s |
 | 4 | Cost + Trend | 0:56 | 1:22 | 26s |
 | 5 | ⭐ A/B Experiment | 1:22 | 2:12 | 50s |
-| 6 | Chat Agent | 2:12 | 2:34 | 22s |
-| 7 | Cierre | 2:34 | 2:48 | 14s |
+| 6 | Chat Agent (live tool calls) | 2:12 | 2:42 | 30s |
+| 7 | Cierre | 2:42 | 2:55 | 13s |
 
-**Total: 2:48**
+**Total: 2:55**
 
 ### Notas de producción
 - **Música:** fondo sutil, sube un poco en Escena 5 (clímax).

@@ -172,10 +172,17 @@
   await at(56000, 'E4 · Cost',           () => { openPanel('analysis'); showAV('cost'); });
   await at(70000, 'E4 · Trend',          () => { openPanel('analysis'); showAV('trend'); });
   await at(82000, 'E5 · A/B experiment', () => { openPanel('analysis'); showAV('experiment'); });
-  await at(132000,'E6 · Chat',           () => { openPanel('chat'); const m=$('#msgs'); if(m) m.scrollTop=0;
-                                                 // gentle scroll through the answer
-                                                 let y=0; const iv=setInterval(()=>{ if(!m){clearInterval(iv);return;} y+=m.scrollHeight/40; m.scrollTop=y; if(y>=m.scrollHeight)clearInterval(iv); },400); });
-  await at(154000,'E7 · Cierre',         () => { openPanel('analysis'); showAV('experiment'); });
-  await at(168000,'— fin —',             () => { setMark('● grabación lista — corta aquí'); });
-  log('DEMO COMPLETO (2:48). Detén la grabación.');
+  await at(132000,'E6 · Chat',           () => {
+    openPanel('chat');
+    // Reset session so judges see tool calls streaming LIVE (Arize Phoenix calls + Gemini reasoning)
+    const m = $('#msgs');
+    if (m) m.innerHTML = '';
+    G.sessionId = null;
+    if (typeof sendMsg === 'function') {
+      sendMsg("Why is my agent failing? Root cause and concrete fix — cite trace IDs from Phoenix.");
+    }
+  });
+  await at(162000,'E7 · Cierre',         () => { openPanel('analysis'); showAV('experiment'); });
+  await at(175000,'— fin —',             () => { setMark('● grabación lista — corta aquí'); });
+  log('DEMO COMPLETO (2:55). Detén la grabación.');
 })();
