@@ -260,53 +260,77 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/chat")
 async def api_chat(req: ChatRequest):
-    """SSE streaming chat endpoint — reuses the same ADK session."""
-    from agentwatch_core.agent import root_agent
-    from google.adk.runners import InMemoryRunner
-    from google.genai import types
+    """SSE streaming chat — direct Gemini API, no ADK runner (saves ~250MB RAM)."""
+    from google import genai
+    from google.genai import types as gtypes
+    from agentwatch_core.prompt import AGENTWATCH_INSTRUCTION
+    from agentwatch_core.phoenix_summary import (
+        get_failure_traces, get_project_trace_summary,
+        get_token_usage_stats, inspect_trace, list_projects_summary,
+    )
+    from agentwatch_core.phoenix_evals import (
+        run_llm_evals, run_prompt_experiment,
+        compare_time_windows, create_failure_dataset,
+    )
+
+    _tools = [
+        get_failure_traces, get_project_trace_summary, get_token_usage_stats,
+        inspect_trace, list_projects_summary, run_llm_evals, run_prompt_experiment,
+        compare_time_windows, create_failure_dataset,
+    ]
+    _tool_map = {fn.__name__: fn for fn in _tools}
 
     session_id = req.session_id or secrets.token_hex(8)
-
     if session_id not in _sessions:
-        # Bound the in-memory session store. Each session keeps an InMemoryRunner
-        # alive; on a 512MB free tier with multiple judges trying the demo these
-        # would accumulate until OOM. Evict the oldest once we pass the cap (dicts
-        # preserve insertion order, so the first key is the least-recently-created).
         while len(_sessions) >= _MAX_SESSIONS:
             _sessions.pop(next(iter(_sessions)), None)
-        app_name = "agentwatch_web"
-        runner = InMemoryRunner(agent=root_agent, app_name=app_name)
-        await runner.session_service.create_session(
-            app_name=app_name, user_id="web_user", session_id=session_id
-        )
-        _sessions[session_id] = {"runner": runner, "app_name": app_name}
+        _sessions[session_id] = []  # conversation history: list[Content]
 
-    runner = _sessions[session_id]["runner"]
+    history: list = _sessions[session_id]
 
     async def generate():
         yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
+        history.append(gtypes.Content(role="user", parts=[gtypes.Part(text=req.message)]))
+        client = genai.Client()
+        cfg = gtypes.GenerateContentConfig(
+            system_instruction=AGENTWATCH_INSTRUCTION,
+            tools=_tools,
+            automatic_function_calling=gtypes.AutomaticFunctionCallingConfig(disable=True),
+        )
         try:
-            async for event in runner.run_async(
-                user_id="web_user",
-                session_id=session_id,
-                new_message=types.Content(
-                    role="user", parts=[types.Part(text=req.message)]
-                ),
-            ):
-                content = getattr(event, "content", None)
-                if not content or not getattr(content, "parts", None):
-                    continue
-                for part in content.parts:
-                    text = getattr(part, "text", None)
-                    if text:
-                        yield f"data: {json.dumps({'type': 'text', 'content': text})}\n\n"
+            for _turn in range(6):
+                resp = await asyncio.to_thread(
+                    client.models.generate_content,
+                    model=current_model(),
+                    contents=history,
+                    config=cfg,
+                )
+                candidate = resp.candidates[0]
+                history.append(candidate.content)
+                fn_parts = []
+                for part in candidate.content.parts:
+                    if getattr(part, "text", None):
+                        yield f"data: {json.dumps({'type': 'text', 'content': part.text})}\n\n"
                     fc = getattr(part, "function_call", None)
                     if fc:
-                        yield f"data: {json.dumps({'type': 'tool_call', 'name': fc.name, 'args': dict(fc.args) if fc.args else {}})}\n\n"
-                    fr = getattr(part, "function_response", None)
-                    if fr:
-                        preview = str(fr.response)[:300] if fr.response else ""
-                        yield f"data: {json.dumps({'type': 'tool_result', 'name': fr.name, 'preview': preview})}\n\n"
+                        args = dict(fc.args) if fc.args else {}
+                        yield f"data: {json.dumps({'type': 'tool_call', 'name': fc.name, 'args': args})}\n\n"
+                        tool_fn = _tool_map.get(fc.name)
+                        try:
+                            result = await asyncio.to_thread(tool_fn, **args) if tool_fn else {"error": f"unknown tool {fc.name}"}
+                        except Exception as exc:
+                            result = {"error": str(exc)[:300]}
+                        preview = str(result)[:300]
+                        yield f"data: {json.dumps({'type': 'tool_result', 'name': fc.name, 'preview': preview})}\n\n"
+                        fn_parts.append(gtypes.Part(
+                            function_response=gtypes.FunctionResponse(
+                                name=fc.name,
+                                response={"result": json.dumps(result, default=str)[:4000]},
+                            )
+                        ))
+                if not fn_parts:
+                    break
+                history.append(gtypes.Content(role="user", parts=fn_parts))
         except Exception as exc:
             yield f"data: {json.dumps({'type': 'error', 'message': str(exc)[:200]})}\n\n"
         yield 'data: {"type": "done"}\n\n'
