@@ -23,7 +23,7 @@ _PRICING: dict[str, tuple[float, float]] = {
     "gemini-2.5-pro": (1.25, 10.00),
 }
 
-DEFAULT_MODEL = "gemini-3-flash-preview"
+DEFAULT_MODEL = "gemini-2.5-flash"
 _FALLBACK_PRICE = _PRICING[DEFAULT_MODEL]
 
 
