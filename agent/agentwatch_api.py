@@ -333,14 +333,18 @@ async def api_chat(req: ChatRequest):
                         fn_parts.append(gtypes.Part(function_response=gtypes.FunctionResponse(**fr_kwargs)))
                 if not fn_parts:
                     break
-                # After tool results, nudge model to give a final written answer
                 history.append(gtypes.Content(role="user", parts=fn_parts))
-                history.append(gtypes.Content(role="user", parts=[gtypes.Part(
-                    text="Based on the data above, provide your analysis and concrete recommendations."
-                )]))
-            # Fallback if model ran tools but never wrote text
+            # If model only called tools and never wrote text, force a final text-only response
             if not any_text:
-                yield f"data: {json.dumps({'type': 'text', 'content': 'AgentWatch finished the requested Phoenix actions, but the model did not return a final written answer for this turn.'})}\n\n"
+                final_resp = await asyncio.to_thread(
+                    client.models.generate_content,
+                    model=current_model(),
+                    contents=history,
+                    config=gtypes.GenerateContentConfig(system_instruction=AGENTWATCH_INSTRUCTION),
+                )
+                for part in (final_resp.candidates[0].content.parts or []):
+                    if getattr(part, "text", None):
+                        yield f"data: {json.dumps({'type': 'text', 'content': part.text})}\n\n"
         except Exception as exc:
             yield f"data: {json.dumps({'type': 'error', 'message': str(exc)[:200]})}\n\n"
         yield 'data: {"type": "done"}\n\n'
