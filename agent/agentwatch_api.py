@@ -298,6 +298,7 @@ async def api_chat(req: ChatRequest):
             automatic_function_calling=gtypes.AutomaticFunctionCallingConfig(disable=True),
         )
         try:
+            any_text = False
             for _turn in range(6):
                 resp = await asyncio.to_thread(
                     client.models.generate_content,
@@ -308,8 +309,9 @@ async def api_chat(req: ChatRequest):
                 candidate = resp.candidates[0]
                 history.append(candidate.content)
                 fn_parts = []
-                for part in candidate.content.parts:
+                for part in (candidate.content.parts or []):
                     if getattr(part, "text", None):
+                        any_text = True
                         yield f"data: {json.dumps({'type': 'text', 'content': part.text})}\n\n"
                     fc = getattr(part, "function_call", None)
                     if fc:
@@ -322,15 +324,23 @@ async def api_chat(req: ChatRequest):
                             result = {"error": str(exc)[:300]}
                         preview = str(result)[:300]
                         yield f"data: {json.dumps({'type': 'tool_result', 'name': fc.name, 'preview': preview})}\n\n"
-                        fn_parts.append(gtypes.Part(
-                            function_response=gtypes.FunctionResponse(
-                                name=fc.name,
-                                response={"result": json.dumps(result, default=str)[:4000]},
-                            )
-                        ))
+                        fr_kwargs = {
+                            "name": fc.name,
+                            "response": {"result": json.dumps(result, default=str)[:4000]},
+                        }
+                        if getattr(fc, "id", None):
+                            fr_kwargs["id"] = fc.id
+                        fn_parts.append(gtypes.Part(function_response=gtypes.FunctionResponse(**fr_kwargs)))
                 if not fn_parts:
                     break
+                # After tool results, nudge model to give a final written answer
                 history.append(gtypes.Content(role="user", parts=fn_parts))
+                history.append(gtypes.Content(role="user", parts=[gtypes.Part(
+                    text="Based on the data above, provide your analysis and concrete recommendations."
+                )]))
+            # Fallback if model ran tools but never wrote text
+            if not any_text:
+                yield f"data: {json.dumps({'type': 'text', 'content': 'AgentWatch finished the requested Phoenix actions, but the model did not return a final written answer for this turn.'})}\n\n"
         except Exception as exc:
             yield f"data: {json.dumps({'type': 'error', 'message': str(exc)[:200]})}\n\n"
         yield 'data: {"type": "done"}\n\n'
