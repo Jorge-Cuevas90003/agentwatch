@@ -95,6 +95,28 @@ The frontend (`agent/static/index.html`) is a single HTML file — Three.js gala
 
 The UI auto-detects your browser language and switches between **English** and **Spanish**.
 
+## Known Limitations & Free-Tier Reality
+
+This project was built and deployed on Render's free tier (512 MB RAM, 60 s nginx timeout). If you clone and self-host, be aware of the following:
+
+### Render free tier constraints
+- **Cold starts**: The service sleeps after 15 min of inactivity. First request takes 20–30 s.
+- **OOM risk on heavy workloads**: The Google ADK `InMemoryRunner` is too memory-heavy for 512 MB. The chat endpoint was rewritten to use the `google.genai` client directly to avoid this. If you upgrade to a paid instance (≥1 GB RAM) you can re-enable the full ADK runner in `agent/agentwatch_core/agent.py`.
+- **Evals & A/B timeout at N > 1**: LLM-as-judge calls chain synchronously. On Render free tier, Nginx cuts connections at 60 s. The UI defaults `N=1`; if you have a faster host, raise it.
+- **No persistent sessions**: Chat sessions live in memory. A cold start wipes all history.
+
+### Gemini model naming
+- If you set `GEMINI_MODEL=gemini-3-flash-preview` and you are **not** on Vertex AI (e.g. using a plain `GOOGLE_API_KEY`), the model ID will be rejected. Use `gemini-2.5-flash` for the Gemini API.
+- Vertex AI exposes some models only under region-specific endpoints. The app defaults to the `global` location for Gemini 3 models.
+
+### Phoenix MCP (Node.js tools)
+- The full Phoenix MCP toolset (prompt versioning, experiment management) requires `npx` at runtime. Render's Python-only service has no Node.js. The app detects this and falls back to the lean Python tools automatically — but if you want the full MCP capability, run locally or on a Docker-based host that includes Node.
+
+### Demo video
+- Not recorded before the submission deadline. The director script (`director.js`, not committed) automates a 3-minute walkthrough for OBS. A/B and Evals run live during recording (not pre-fetched) to show authentic latency to judges.
+
+---
+
 ## License
 
 Apache-2.0 — see [LICENSE](LICENSE).
